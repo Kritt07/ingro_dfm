@@ -1,0 +1,57 @@
+"""Контракт данных PartPassport v2.0 (КТМД), PMI-парсинг и миграция с v1."""
+
+from .migration_v1_to_v2 import migrate_v1_to_v2
+from .part_passport import (
+    BlankType,
+    CADSource,
+    ClassificationSpec,
+    DimensionsSpec,
+    ElementCategory,
+    FeatureOrFaceItem,
+    GeomToleranceType,
+    GeometryType,
+    MachinabilityGroup,
+    MaterialGroup,
+    PMISource,
+    PMISpec,
+    PartPassport,
+    ProductionType,
+)
+from .pmi_utils import (
+    ParsedTechRequirements,
+    esdp_unit_um,
+    extract_hb_numeric,
+    it_from_tolerance_um,
+    map_fcf_symbol_to_enum,
+    parse_roughness_text,
+    parse_tech_requirements,
+    parse_tolerance_text,
+    rz_to_ra,
+)
+
+__all__ = [
+    "CADSource",
+    "ProductionType",
+    "MaterialGroup",
+    "MachinabilityGroup",
+    "BlankType",
+    "ElementCategory",
+    "GeometryType",
+    "GeomToleranceType",
+    "PMISource",
+    "DimensionsSpec",
+    "PMISpec",
+    "ClassificationSpec",
+    "FeatureOrFaceItem",
+    "PartPassport",
+    "migrate_v1_to_v2",
+    "ParsedTechRequirements",
+    "rz_to_ra",
+    "parse_roughness_text",
+    "esdp_unit_um",
+    "it_from_tolerance_um",
+    "parse_tolerance_text",
+    "map_fcf_symbol_to_enum",
+    "parse_tech_requirements",
+    "extract_hb_numeric",
+]

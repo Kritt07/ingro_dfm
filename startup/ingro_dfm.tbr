@@ -1,0 +1,8 @@
+TITLE Ingro DFM
+VERSION 170
+DOCK TOP
+
+BUTTON INGRO_DFM_CALC_BTN
+LABEL Рассчитать время (ЦБНТ)
+BITMAP clock
+ACTION D:\Antihrafity\FW\Ingro\ingro_dfm\IngroDFMNX_nxui_v2.dll

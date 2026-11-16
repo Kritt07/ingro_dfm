@@ -1,0 +1,134 @@
+{
+  "version": "2.0",
+  "description": "Коэффициенты обрабатываемости, плотности и базовые MRR (мм3/мин) по группам материалов",
+  "materials": {
+    "ST_Carbon": {
+      "name_ru": "Углеродистые конструкционные стали",
+      "examples": ["Сталь 20", "Сталь 45", "Ст3", "Сталь 35"],
+      "aliases": ["45", "сталь 45", "ст45", "ст.45", "20", "сталь 20", "ст3", "35", "carbon", "c45"],
+      "machinability_group": "G2_Satisfactory",
+      "k_mat_coeff": 1.0,
+      "density_g_cm3": 7.85,
+      "default_hb": 190,
+      "cbnt_family": "steel_carbon",
+      "mrr_mm3_per_min": {
+        "turning": 42000.0,
+        "milling": 32000.0,
+        "drilling": 18000.0,
+        "grinding": 2400.0
+      }
+    },
+    "ST_Alloy": {
+      "name_ru": "Легированные конструкционные стали",
+      "examples": ["40Х", "30ХГСА", "09Г2С", "40ХН2МА", "18ХГТ"],
+      "aliases": ["40х", "40x", "30хгса", "09г2с", "40хн", "18хгт", "12хн3а", "alloy"],
+      "machinability_group": "G2_Satisfactory",
+      "k_mat_coeff": 1.15,
+      "density_g_cm3": 7.85,
+      "default_hb": 225,
+      "cbnt_family": "steel_alloy",
+      "mrr_mm3_per_min": {
+        "turning": 34000.0,
+        "milling": 26000.0,
+        "drilling": 14500.0,
+        "grinding": 2100.0
+      }
+    },
+    "ST_Stainless": {
+      "name_ru": "Коррозионностойкие (нержавеющие) стали",
+      "examples": ["12Х18Н10Т", "08Х18Н10", "14Х17Н2", "AISI 304", "AISI 316"],
+      "aliases": ["12х18н10т", "08х18н10", "14х17н2", "40х13", "нерж", "aisi", "stainless"],
+      "machinability_group": "G3_Poor",
+      "k_mat_coeff": 1.5,
+      "density_g_cm3": 7.9,
+      "default_hb": 200,
+      "cbnt_family": "stainless",
+      "mrr_mm3_per_min": {
+        "turning": 21000.0,
+        "milling": 15500.0,
+        "drilling": 9000.0,
+        "grinding": 1650.0
+      }
+    },
+    "CI_Gray": {
+      "name_ru": "Серый чугун",
+      "examples": ["СЧ15", "СЧ20", "СЧ25", "СЧ30"],
+      "aliases": ["сч15", "сч20", "сч25", "сч30", "чугун сч", "сч", "gray cast iron"],
+      "machinability_group": "G1_Good",
+      "k_mat_coeff": 0.85,
+      "density_g_cm3": 7.2,
+      "default_hb": 180,
+      "cbnt_family": "cast_iron",
+      "mrr_mm3_per_min": {
+        "turning": 52000.0,
+        "milling": 42000.0,
+        "drilling": 24000.0,
+        "grinding": 2800.0
+      }
+    },
+    "CI_Ductile": {
+      "name_ru": "Высокопрочный и ковкий чугун",
+      "examples": ["ВЧ40", "ВЧ50", "ВЧ60", "КЧ35"],
+      "aliases": ["вч40", "вч50", "вч60", "кч35", "чугун вч", "вч", "ductile"],
+      "machinability_group": "G2_Satisfactory",
+      "k_mat_coeff": 1.05,
+      "density_g_cm3": 7.3,
+      "default_hb": 210,
+      "cbnt_family": "cast_iron",
+      "mrr_mm3_per_min": {
+        "turning": 40000.0,
+        "milling": 31000.0,
+        "drilling": 17000.0,
+        "grinding": 2300.0
+      }
+    },
+    "AL_Alloy": {
+      "name_ru": "Алюминиевые сплавы",
+      "examples": ["Д16Т", "АМг6", "АК9", "В95", "АД31"],
+      "aliases": ["д16т", "д16", "амг6", "амг", "ак9", "в95", "ал", "алюмин", "aluminum", "6061"],
+      "machinability_group": "G1_Good",
+      "k_mat_coeff": 0.75,
+      "density_g_cm3": 2.78,
+      "default_hb": 105,
+      "cbnt_family": "aluminum",
+      "mrr_mm3_per_min": {
+        "turning": 110000.0,
+        "milling": 95000.0,
+        "drilling": 48000.0,
+        "grinding": 3800.0
+      }
+    },
+    "CU_Alloy": {
+      "name_ru": "Медные сплавы (бронзы и латуни)",
+      "examples": ["БрАЖ9-4", "БрОЦС5-5-5", "Л63", "ЛС59-1"],
+      "aliases": ["браж", "броцс", "бронз", "л63", "лс59", "латун", "медь", "bronze", "brass"],
+      "machinability_group": "G1_Good",
+      "k_mat_coeff": 0.8,
+      "density_g_cm3": 8.5,
+      "default_hb": 110,
+      "cbnt_family": "copper",
+      "mrr_mm3_per_min": {
+        "turning": 88000.0,
+        "milling": 72000.0,
+        "drilling": 36000.0,
+        "grinding": 3200.0
+      }
+    },
+    "TI_Alloy": {
+      "name_ru": "Титановые сплавы",
+      "examples": ["ВТ1-0", "ВТ6", "ВТ14", "ОТ4"],
+      "aliases": ["вт1", "вт6", "вт14", "вт3", "от4", "титан", "titanium", "ti-6al"],
+      "machinability_group": "G3_Poor",
+      "k_mat_coeff": 1.85,
+      "density_g_cm3": 4.5,
+      "default_hb": 290,
+      "cbnt_family": "titanium",
+      "mrr_mm3_per_min": {
+        "turning": 14000.0,
+        "milling": 11000.0,
+        "drilling": 6500.0,
+        "grinding": 1200.0
+      }
+    }
+  }
+}
