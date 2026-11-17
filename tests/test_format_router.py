@@ -1,4 +1,4 @@
-"""Проверять маршрутизацию на небольших воспроизводимых документах."""
+"""Проверять маршрутизацию на тестовых документах и фотографиях с телефона."""
 
 from pathlib import Path
 import zipfile
@@ -72,3 +72,30 @@ def test_missing_file(tmp_path):
     """Проверить ошибку при обращении к отсутствующему файлу."""
     with pytest.raises(InspectionError):
         inspect_file(tmp_path / "missing.txt")
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "card01_straight.jpg",
+        "card01_tilted.jpg",
+        "card02_straight.jpg",
+        "card02_tilted.jpg",
+        "card03_straight.jpg",
+        "card03_tilted.jpg",
+    ],
+)
+def test_phone_photo_routing(filename):
+    """Проверить формат и метаданные каждого снимка печатной карты."""
+    path = Path(__file__).parent / "fixtures" / "phone_photos" / filename
+
+    result = inspect_file(path)
+
+    assert result.path == str(path)
+    assert result.source_format == "jpeg"
+    assert result.mime_type == "image/jpeg"
+    assert result.page_count == 1
+    assert result.dpi == (72.0, 72.0)
+    assert result.encoding is None
+    assert result.page_kinds == []
+    assert result.warnings == []
