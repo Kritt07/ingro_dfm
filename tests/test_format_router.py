@@ -1,4 +1,4 @@
-"""Routing regressions using small reproducible source documents."""
+# Проверки маршрутизации на небольших воспроизводимых документах.
 
 from pathlib import Path
 import zipfile

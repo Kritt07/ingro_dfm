@@ -1,4 +1,4 @@
-"""Inspect source documents before selecting an extraction pipeline."""
+# Определение формата документа для выбора способа извлечения данных.
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -10,13 +10,14 @@ from PIL import Image
 import pymupdf
 
 
+# Ошибка чтения документа или определения поддерживаемого формата.
 class InspectionError(ValueError):
-    """A source cannot be inspected or its format is unsupported."""
+    pass
 
 
 @dataclass
 class Inspection:
-    """Routing metadata; PDF page kinds preserve mixed-document routing."""
+    # Сведения для выбора обработчика, включая тип каждой страницы PDF.
 
     path: str
     source_format: str
@@ -29,7 +30,8 @@ class Inspection:
 
 
 def inspect_file(path: str | Path) -> Inspection:
-    """Inspect a file, raising InspectionError on unreadable or invalid input."""
+    # Проверить файл и определить его формат и доступные метаданные.
+    # При ошибке чтения или неподдерживаемом содержимом вызвать InspectionError.
     source = Path(path)
     try:
         if not source.is_file():
@@ -47,6 +49,7 @@ def inspect_file(path: str | Path) -> Inspection:
 
 
 def _inspect(source: Path, header: bytes) -> Inspection:
+    # Определить формат по сигнатуре, структуре контейнера и расширению.
     if b"%PDF-" in header[:1024]:
         return _inspect_pdf(source)
     if zipfile.is_zipfile(source):
@@ -67,7 +70,7 @@ def _inspect(source: Path, header: bytes) -> Inspection:
                     return Inspection(str(source), kinds[mime], mime)
         raise InspectionError(f"Unsupported ZIP document: {source}")
     if header.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
-        with olefile.OleFileIO(source) as document:
+        with olefile.OleFileIO(str(source)) as document:
             if document.exists("WordDocument"):
                 return Inspection(str(source), "doc", "application/msword")
             if document.exists("Workbook") or document.exists("Book"):
@@ -105,14 +108,16 @@ def _inspect(source: Path, header: bytes) -> Inspection:
 
 
 def _inspect_pdf(source: Path) -> Inspection:
+    # Определить типы страниц PDF по наличию текста и растровых изображений.
     with pymupdf.open(source) as document:
         if document.needs_pass:
             raise InspectionError(f"Password-protected PDF: {source}")
         kinds = []
         warnings = []
-        for index, page in enumerate(document):
+        for index in range(document.page_count):
             try:
-                text = bool(page.get_text().strip())
+                page = document.load_page(index)
+                text = bool(page.get_textpage().extractText().strip())
                 images = bool(page.get_image_info())
                 kind = "pdf_text"
                 if text and images:

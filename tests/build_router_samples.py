@@ -1,4 +1,4 @@
-"""Build reproducible routing fixtures from a small synthetic table."""
+# Создание воспроизводимых образцов форматов с небольшой тестовой таблицей.
 
 from dataclasses import asdict
 import json
@@ -11,7 +11,7 @@ from normdoc2json import inspect_file
 
 
 def build_samples(destination: Path) -> None:
-    """Write synthetic text, image and PDF inputs with inspection metadata."""
+    # Создать тестовые документы и записать результаты определения их форматов.
     destination.mkdir(parents=True, exist_ok=True)
     picture = Image.new("RGB", (600, 300), "white")
     drawing = ImageDraw.Draw(picture)
