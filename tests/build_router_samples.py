@@ -1,4 +1,4 @@
-# Создание воспроизводимых образцов форматов с небольшой тестовой таблицей.
+"""Создавать воспроизводимые образцы форматов с тестовой таблицей."""
 
 from dataclasses import asdict
 import json
@@ -11,7 +11,13 @@ from normdoc2json import inspect_file
 
 
 def build_samples(destination: Path) -> None:
-    # Создать тестовые документы и записать результаты определения их форматов.
+    """Создать тестовые документы и манифест в каталоге destination.
+
+    Создать каталог при необходимости и записать синтетические изображения,
+    PDF и CSV. Существующие одноимённые образцы и manifest.json обновляются.
+    Манифест включает результаты инспекции всех файлов каталога, кроме
+    JSON и Markdown. Ошибки записи и инспекции передаются вызывающему коду.
+    """
     destination.mkdir(parents=True, exist_ok=True)
     picture = Image.new("RGB", (600, 300), "white")
     drawing = ImageDraw.Draw(picture)

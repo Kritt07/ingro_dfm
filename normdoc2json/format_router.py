@@ -1,4 +1,4 @@
-# Определение формата документа для выбора способа извлечения данных.
+"""Определять формат документа для выбора способа извлечения данных."""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -10,14 +10,20 @@ from PIL import Image
 import pymupdf
 
 
-# Ошибка чтения документа или определения поддерживаемого формата.
 class InspectionError(ValueError):
-    pass
+    """Ошибка чтения документа или определения поддерживаемого формата."""
 
 
 @dataclass
 class Inspection:
-    # Сведения для выбора обработчика, включая тип каждой страницы PDF.
+    """Сведения для выбора обработчика документа.
+
+    Поля path, source_format и mime_type задают источник и его формат.
+    encoding содержит предполагаемую кодировку текстового файла.
+    page_count и page_kinds описывают число страниц и типы страниц PDF.
+    dpi содержит разрешение изображения по двум осям, если оно известно.
+    warnings содержит предупреждения, полученные при проверке.
+    """
 
     path: str
     source_format: str
@@ -30,8 +36,13 @@ class Inspection:
 
 
 def inspect_file(path: str | Path) -> Inspection:
-    # Проверить файл и определить его формат и доступные метаданные.
-    # При ошибке чтения или неподдерживаемом содержимом вызвать InspectionError.
+    """Определить формат файла и вернуть доступные метаданные в Inspection.
+
+    Аргумент path задаёт путь к одному файлу строкой или объектом Path.
+    При ошибке чтения, пустом файле или неподдерживаемом содержимом
+    вызывается InspectionError. Ошибки отдельных страниц PDF сохраняются
+    в warnings, чтобы обработка оставшихся страниц могла продолжиться.
+    """
     source = Path(path)
     try:
         if not source.is_file():
@@ -49,7 +60,7 @@ def inspect_file(path: str | Path) -> Inspection:
 
 
 def _inspect(source: Path, header: bytes) -> Inspection:
-    # Определить формат по сигнатуре, структуре контейнера и расширению.
+    """Определить формат по сигнатуре, структуре контейнера и расширению."""
     if b"%PDF-" in header[:1024]:
         return _inspect_pdf(source)
     if zipfile.is_zipfile(source):
@@ -108,7 +119,7 @@ def _inspect(source: Path, header: bytes) -> Inspection:
 
 
 def _inspect_pdf(source: Path) -> Inspection:
-    # Определить типы страниц PDF по наличию текста и растровых изображений.
+    """Определить типы страниц PDF по наличию текста и растровых изображений."""
     with pymupdf.open(source) as document:
         if document.needs_pass:
             raise InspectionError(f"Password-protected PDF: {source}")

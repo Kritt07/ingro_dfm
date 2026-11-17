@@ -1,4 +1,4 @@
-# Проверки маршрутизации на небольших воспроизводимых документах.
+"""Проверять маршрутизацию на небольших воспроизводимых документах."""
 
 from pathlib import Path
 import zipfile
@@ -11,6 +11,7 @@ from normdoc2json import InspectionError, inspect_file
 
 
 def test_pdf_page_routing(tmp_path):
+    """Проверить типы текстовой, сканированной и пустой страниц PDF."""
     picture = tmp_path / "scan.png"
     Image.new("RGB", (100, 100), "white").save(picture)
     path = tmp_path / "mixed.pdf"
@@ -26,6 +27,7 @@ def test_pdf_page_routing(tmp_path):
 
 @pytest.mark.parametrize("kind", ["docx", "xlsx", "odt", "ods"])
 def test_office_signature_over_extension(tmp_path, kind):
+    """Проверить определение офисного формата при неверном расширении."""
     path = tmp_path / "wrong.dat"
     with zipfile.ZipFile(path, "w") as archive:
         if kind in {"docx", "xlsx"}:
@@ -38,6 +40,7 @@ def test_office_signature_over_extension(tmp_path, kind):
 
 
 def test_multipage_tiff(tmp_path):
+    """Проверить число страниц и разрешение многостраничного TIFF."""
     path = tmp_path / "scan.tiff"
     page = Image.new("RGB", (20, 20), "white")
     page.save(path, save_all=True, append_images=[page], dpi=(300, 300))
@@ -48,6 +51,7 @@ def test_multipage_tiff(tmp_path):
 
 @pytest.mark.parametrize("encoding", ["utf-8", "utf-16"])
 def test_text_encoding(tmp_path, encoding):
+    """Проверить восстановление текста CSV в определённой кодировке."""
     path = tmp_path / "table.csv"
     content = "Диаметр;Время\n10;0,45\n"
     path.write_bytes(content.encode(encoding))
@@ -57,6 +61,7 @@ def test_text_encoding(tmp_path, encoding):
 
 @pytest.mark.parametrize("content", [b"", b"%PDF-damaged", b"PK\x03\x04broken"])
 def test_damaged_documents(tmp_path, content):
+    """Проверить отклонение пустых и повреждённых документов."""
     path = tmp_path / "broken.pdf"
     path.write_bytes(content)
     with pytest.raises(InspectionError):
@@ -64,5 +69,6 @@ def test_damaged_documents(tmp_path, content):
 
 
 def test_missing_file(tmp_path):
+    """Проверить ошибку при обращении к отсутствующему файлу."""
     with pytest.raises(InspectionError):
         inspect_file(tmp_path / "missing.txt")
