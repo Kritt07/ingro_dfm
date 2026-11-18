@@ -1,5 +1,19 @@
 # NormDoc2JSON
 
+## Второй день — программист 1
+
+Реализован `extract_spreadsheet` для XLSX, XLS и CSV по таблице 2 ТЗ.
+Описание результата, проверок и ограничений — [DAY2_PROGRAMMER1.md](DAY2_PROGRAMMER1.md).
+
+```python
+from normdoc2json import extract_spreadsheet
+
+result = extract_spreadsheet("tests/fixtures/router/turning.xlsx")
+for sheet in result.sheets:
+    print(sheet.name, sheet.values, sheet.merged_ranges)
+print(result.requires_manual_review, result.warnings)
+```
+
 Первый день, программист 1 — определение форматов источников для дальнейшего извлечения данных.
 
 Рабочие требования заданы документом «ТЗ для IT.docx», ИНГРО.ТЗ.02-2026, редакция 1.0. Краткий контекст и цели спринта находятся в [AGENTS.md](../AGENTS.md). По таблице 2 первый день также включает Pydantic-схему по Приложению А, каркас CLI и логирование со стороны программиста 2. Эти компоненты ещё предстоит добавить.
