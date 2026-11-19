@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple
 
 from docx import Document
 from docx.table import Table
+from norm_importer.grid_mapper import map_raw_grid_to_table_grid
 
 from norm_importer.schema import (
     ApplicabilityConditions,
@@ -161,52 +162,6 @@ def _extract_metadata_from_paragraphs(paragraphs: List[str], fallback_name: str)
 
     return card_title, operation_type, formula, notes
 
-
-def _grid_to_table_schema(grid: List[List[str]]) -> Tuple[TableGrid, List[str]]:
-    """Преобразует двумерную сетку текста в валидный TableGrid с определением осей."""
-    warnings: List[str] = []
-    if len(grid) < 2 or len(grid) < 2:
-        raise ValueError("Таблица слишком мала для построения числовой матрицы (минимум 2x2).")
-
-    header_row_idx = 0
-    for r_idx in range(min(3, len(grid) - 1)):
-        first_cell_nums = _extract_numeric_headers([grid[r_idx][0]])
-        if first_cell_nums:
-            break
-        nums = _extract_numeric_headers(grid[r_idx][1:])
-        if len(nums) >= 1:
-            header_row_idx = r_idx
-
-    raw_col_headers = grid[header_row_idx][1:]
-    cols_range = _extract_numeric_headers(raw_col_headers)
-    if len(cols_range) != len(raw_col_headers):
-        cols_range = [c if c else f"col_{i+1}" for i, c in enumerate(raw_col_headers)]
-        warnings.append("Не все заголовки столбцов распознаны как числа; сохранены строковые метки.")
-
-    rows_range: List[float | str] = []
-    values_matrix: List[List[str]] = []
-
-    for row in grid[header_row_idx + 1 :]:
-        if not any(cell.strip() for cell in row):
-            continue
-        row_label = row[0]
-        row_nums = _extract_numeric_headers([row_label])
-        rows_range.append(row_nums[0] if row_nums else row_label)
-        values_matrix.append(row[1 : 1 + len(cols_range)])
-
-    if not rows_range:
-        raise ValueError("В таблице не найдены строки с нормативными данными.")
-
-    table_grid = TableGrid(
-        row_param_name="row_param",
-        col_param_name="col_param",
-        rows_range=rows_range,
-        cols_range=cols_range,
-        values_matrix=values_matrix,
-    )
-    return table_grid, warnings
-
-
 def _parse_txt_tables(text: str) -> Tuple[List[str], List[List[List[str]]]]:
     """Извлекает абзацы и псевдографические/разделённые табуляцией или '|' таблицы из .txt."""
     paragraphs: List[str] = []
@@ -221,7 +176,6 @@ def _parse_txt_tables(text: str) -> Tuple[List[str], List[List[List[str]]]]:
             current_table = []
             continue
 
-        # Пропускаем разделители вроде +----+----+ или -----
         if re.fullmatch(r"[\-\+\=\|\s]+", stripped):
             continue
 
@@ -286,7 +240,7 @@ def parse_office_file(file_path: Path) -> NormDocDocument:
     cards: List[NormCard] = []
     for idx, grid in enumerate(raw_tables, start=1):
         try:
-            table_grid, grid_warnings = _grid_to_table_schema(grid)
+            table_grid, grid_warnings = map_raw_grid_to_table_grid(grid)
             warnings.extend(grid_warnings)
             cards.append(
                 NormCard(
