@@ -25,6 +25,12 @@ def extract_pdf(path: str | Path) -> PDFExtraction:
                 try:
                     page = _read_page(document[index], index+1, inspection.page_kinds[index])
                     result.pages.append(page)
+                    if page.kind in {'pdf_scanned', 'pdf_hybrid', 'pdf_unknown'}:
+                        result.warnings.append(f'Page {index+1}: raster/unknown content may require OCR')
+                    if not page.tables:
+                        result.warnings.append(f'Page {index+1}: no tables extracted')
+                    if any(t.method == 'text' for t in page.tables):
+                        result.warnings.append(f'Page {index+1}: inferred borderless grid requires review')
                 except Exception as exc:
                     result.warnings.append(f'Page {index+1}: {exc}')
     except Exception as exc:
