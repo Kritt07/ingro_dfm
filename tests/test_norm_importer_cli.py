@@ -49,9 +49,9 @@ def test_cli_batch_directory_conversion(tmp_path: Path):
     )
 
     assert result.exit_code == 0
-    assert (out_dir / "doc1.json").exists()
-    assert (out_dir / "doc2.json").exists()
-    assert not (out_dir / "ignored.json").exists()
+    assert (out_dir / "doc1_pdf.json").exists()
+    assert (out_dir / "doc2_xlsx.json").exists()
+    assert not (out_dir / "ignored_exe.json").exists()
 
 
 def test_cli_strict_mode_returns_nonzero_on_manual_review(tmp_path: Path):
@@ -71,7 +71,7 @@ def test_cli_strict_mode_returns_nonzero_on_manual_review(tmp_path: Path):
     )
 
     assert result.exit_code == 1
-    assert (output_dir / "scan.json").exists()
+    assert (output_dir / "scan_png.json").exists()
 
 
 def test_cli_empty_directory_exits_with_error(tmp_path: Path):
@@ -89,3 +89,23 @@ def test_cli_empty_directory_exits_with_error(tmp_path: Path):
     )
 
     assert result.exit_code == 1
+
+def test_cli_batch_directory_no_overwrite_same_stem(tmp_path: Path):
+    """Проверка, что файлы с одинаковым именем и разным расширением не перезаписывают друг друга."""
+    in_dir = tmp_path / "batch_in"
+    in_dir.mkdir()
+    (in_dir / "karta.pdf").write_bytes(b"%PDF-1.4")
+    (in_dir / "karta.xlsx").write_bytes(b"PK")
+    (in_dir / "ignored.exe").write_bytes(b"MZ")
+
+    out_dir = tmp_path / "batch_out"
+
+    result = runner.invoke(
+        app,
+        ["-i", str(in_dir), "-o", str(out_dir)],
+    )
+
+    assert result.exit_code == 0
+    assert (out_dir / "karta_pdf.json").exists()
+    assert (out_dir / "karta_xlsx.json").exists()
+    assert not (out_dir / "ignored_exe.json").exists()

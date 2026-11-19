@@ -153,6 +153,8 @@ def test_json_file_serialization(tmp_path):
             )
         ],
     )
+    
+    
 
     out_path = tmp_path / "result.json"
     doc.to_json_file(str(out_path))
@@ -162,3 +164,32 @@ def test_json_file_serialization(tmp_path):
 
     restored = NormDocDocument.model_validate_json(raw_bytes.decode("utf-8"))
     assert restored.cards[0].table_grid.values_matrix == [[1.55]]
+    
+def test_negative_ranges_and_invalid_bounds():
+    """Проверка отрицательных границ (-2--1) и отклонения неправильных/обратных диапазонов."""
+    grid = TableGrid(
+        row_param_name="allowance",
+        col_param_name="delta",
+        rows_range=[1.0],
+        cols_range=[1.0, 2.0],
+        values_matrix=[["-2--1", "-0,5 - -0,1"]],
+    )
+    assert grid.values_matrix == [[[-2.0, -1.0], [-0.5, -0.1]]]
+
+
+    with pytest.raises(ValidationError, match="Обратный порядок границ"):
+        TableGrid(
+            row_param_name="d",
+            rows_range=[1.0],
+            cols_range=[1.0],
+            values_matrix=[["0,5-0,2"]],
+        )
+
+    with pytest.raises(ValidationError, match="должен содержать ровно 2 границы"):
+        TableGrid(
+            row_param_name="d",
+            rows_range=[1.0],
+            cols_range=[1.0],
+            values_matrix=[[[0.1, 0.2, 0.3]]],
+        )
+
