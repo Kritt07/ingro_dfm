@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import pymupdf
 from .format_router import InspectionError, inspect_file
-from .pdf_types import PDFExtraction, PDFPage, PDFTable, TextBlock
+from .pdf_types import BBox, PDFExtraction, PDFPage, PDFTable, TextBlock
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,8 @@ def _read_page(page, number, kind):
             rect = pymupdf.Rect(line['bbox'])
             center = (rect.tl + rect.br) / 2
             if not any(pymupdf.Rect(t.bbox).contains(center) for t in tables):
-                blocks.append(TextBlock(tuple(rect), ''.join(s['text'] for s in line['spans'])))
+                blocks.append(TextBlock((rect.x0, rect.y0, rect.x1, rect.y1),
+                                        ''.join(s['text'] for s in line['spans'])))
     return PDFPage(number, kind, blocks, tables)
 
 def extract_pdf(path: str | Path) -> PDFExtraction:
@@ -62,10 +63,11 @@ def _extract_tables(page, number):
             for c, box in enumerate(row):
                 if box is None:
                     continue
-                r1 = min(range(len(ys)), key=lambda i: abs(ys[i]-box[1]))
-                r2 = min(range(len(ys)), key=lambda i: abs(ys[i]-box[3]))
-                c1 = min(range(len(xs)), key=lambda i: abs(xs[i]-box[0]))
-                c2 = min(range(len(xs)), key=lambda i: abs(xs[i]-box[2]))
+                x0, y0, x1, y1 = box
+                r1 = min(range(len(ys)), key=lambda i: abs(ys[i]-y0))
+                r2 = min(range(len(ys)), key=lambda i: abs(ys[i]-y1))
+                c1 = min(range(len(xs)), key=lambda i: abs(xs[i]-x0))
+                c2 = min(range(len(xs)), key=lambda i: abs(xs[i]-x1))
                 if r2-r1 > 1 or c2-c1 > 1:
                     merged.append((r1+1,c1+1,r2,c2))
                     for rr in range(r1,min(r2,len(values))):
@@ -114,10 +116,12 @@ def _borderless_tables(page, number):
             continue
         values, boxes = [], []
         for band in group:
-            row, rects = [None]*len(anchors), [None]*len(anchors)
+            row: list[str | None] = [None]*len(anchors)
+            rects: list[BBox | None] = [None]*len(anchors)
             for word in band:
                 col = min(range(len(anchors)), key=lambda i: abs(anchors[i]-word[0]))
-                row[col], rects[col] = word[4], tuple(word[:4])
+                row[col] = word[4]
+                rects[col] = (word[0], word[1], word[2], word[3])
             values.append(row)
             boxes.append(rects)
         words = [w for band in group for w in band]
