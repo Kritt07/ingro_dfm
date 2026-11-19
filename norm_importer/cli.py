@@ -1,8 +1,10 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import typer
+import csv
 
 from norm_importer.logger import setup_logger
+from norm_importer.grid_mapper import map_raw_grid_to_table_grid
 from norm_importer.office_parser import OFFICE_EXTENSIONS, parse_office_file
 from norm_importer.schema import (
     ApplicabilityConditions,
@@ -25,6 +27,102 @@ SUPPORTED_EXTENSIONS = {
     ".jpeg", ".jpg", ".png", ".bmp", ".webp", ".tiff", ".tif",
 }
 
+SPREADSHEET_EXTENSIONS = {".xlsx", ".xls", ".csv", ".ods"}
+
+def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
+    """Извлекает таблицы из .xlsx / .csv (через spreadsheets.py Разработчика 1 или openpyxl/csv)."""
+    ext = file_path.suffix.lower()
+    format_map = {
+        ".xlsx": SourceFormat.XLSX,
+        ".xls": SourceFormat.XLS,
+        ".csv": SourceFormat.CSV,
+        ".ods": SourceFormat.ODS,
+    }
+    source_format = format_map.get(ext, SourceFormat.XLSX)
+    warnings: List[str] = []
+    requires_manual_review = False
+    raw_grids: List[Tuple[str, List[List[str]]]] = []
+    extraction_method = "openpyxl_grid_mapper"
+
+    try:
+        from normdoc2json.spreadsheets import extract_spreadsheet_tables
+        extracted = extract_spreadsheet_tables(file_path)
+        extraction_method = "normdoc2json.spreadsheets"
+        for idx, tbl in enumerate(extracted, start=1):
+            grid = getattr(tbl, "grid", None) or getattr(tbl, "rows", None) or tbl
+            title = getattr(tbl, "title", f"Лист {idx}")
+            if isinstance(grid, list):
+                raw_grids.append((str(title), grid))
+    except Exception:
+        # Надёжный встроенный fallback для .csv и .xlsx
+        try:
+           if ext == ".csv":
+               extraction_method = "csv_grid_mapper"
+               text = file_path.read_text(encoding="utf-8-sig")
+               dialect = csv.Sniffer().sniff(text[:1024], delimiters=";,|\t")
+               rows = list(csv.reader(text.splitlines(), dialect))
+               raw_grids.append((file_path.stem, rows))
+           elif ext == ".xlsx":
+               import openpyxl
+               wb = openpyxl.load_workbook(str(file_path), data_only=True)
+               for sheet_name in wb.sheetnames:
+                   ws = wb[sheet_name]
+                   rows = [
+                       ["" if cell is None else str(cell) for cell in row]
+                       for row in ws.iter_rows(values_only=True)
+                   ]
+                   raw_grids.append((sheet_name, rows))
+        except Exception as exc:
+                requires_manual_review = True
+                warnings.append(f"Ошибка чтения табличного файла {file_path.name}: {exc}")
+
+    cards: List[NormCard] = []
+    for idx, (sheet_title, grid) in enumerate(raw_grids, start=1):
+        try:
+            table_grid, grid_warnings = map_raw_grid_to_table_grid(grid)
+            warnings.extend(grid_warnings)
+            cards.append(
+                NormCard(
+                    card_id=f"{file_path.stem.upper()}_SHEET_{idx:02d}",
+                    card_title=f"Карта ({sheet_title})",
+                    applicability_conditions=ApplicabilityConditions(operation_type="Механическая обработка"),
+                    calculation_formula="Ttbl",
+                    table_grid=table_grid,
+                )
+            )
+        except Exception as exc:
+            requires_manual_review = True
+            warnings.append(f"Лист '{sheet_title}' пропущен: {exc}")
+
+    if not cards:
+        requires_manual_review = True
+        warnings.append("Не удалось извлечь валидные таблицы из файла; создана карточка-заглушка.")
+        cards.append(
+            NormCard(
+                card_id=f"{file_path.stem.upper()}_EMPTY_01",
+                card_title=f"Заготовка из {file_path.name}",
+                applicability_conditions=ApplicabilityConditions(operation_type="Не определено"),
+                calculation_formula="Ttbl",
+                table_grid=TableGrid(
+                    row_param_name="unknown",
+                    rows_range=["stub"],
+                    cols_range=["stub"],
+                    values_matrix=[[None]],
+                ),
+            )
+        )
+
+    return NormDocDocument(
+        source_metadata=SourceMetadata(
+            source_file=file_path.name,
+            source_format=source_format,
+            page_number=1,
+            extraction_method=extraction_method,
+            requires_manual_review=requires_manual_review,
+            warnings=warnings,
+        ),
+        cards=cards,
+    )
 
 def collect_input_files(input_path: Path) -> List[Path]:
     if input_path.is_file():
@@ -91,6 +189,10 @@ def process_single_file(
 
     if ext in OFFICE_EXTENSIONS:
         return parse_office_file(file_path)
+    if ext in OFFICE_EXTENSIONS:
+        return parse_office_file(file_path)
+    if ext in SPREADSHEET_EXTENSIONS:
+        return _parse_spreadsheet_file(file_path)
 
     detected_format = _detect_format_via_router(file_path)
 
