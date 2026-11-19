@@ -41,11 +41,10 @@ def extract_pdf(path: str | Path) -> PDFExtraction:
 
 def _extract_tables(page, number):
     """Найти сетки по линиям, затем по выравниванию при отсутствии линий."""
-    finder = page.find_tables(strategy='lines_strict')
+    finder = page.find_tables(strategy='lines_strict', use_layout=False)
     method = 'lines'
     if not finder.tables:
-        finder = page.find_tables(strategy='text', min_words_vertical=3)
-        method = 'text'
+        return _borderless_tables(page, number)
     tables = []
     for source in finder.tables:
         values = source.extract()
@@ -69,3 +68,54 @@ def _extract_tables(page, number):
                             boxes[rr][cc] = box
         tables.append(PDFTable(number, tuple(source.bbox), values, boxes, merged, method))
     return tables
+
+
+
+def _borderless_tables(page, number):
+    """Восстановить простые таблицы по повторяющимся позициям текста."""
+    lines = {}
+    for word in page.get_text('words'):
+        lines.setdefault((word[5], word[6]), []).append(word)
+    # PDF может хранить каждую ячейку отдельной строкой: группируем по высоте.
+    bands = []
+    for word in sorted((w for ws in lines.values() for w in ws), key=lambda w: (w[1], w[0])):
+        band = next((b for b in bands if abs(b[0][1]-word[1]) < 3), None)
+        if band is None:
+            bands.append([word])
+        else:
+            band.append(word)
+    candidates = []
+    for band in bands:
+        band.sort(key=lambda w: w[0])
+        if len(band) >= 2 and all(band[i+1][0]-band[i][2] > 20 for i in range(len(band)-1)):
+            candidates.append(band)
+    groups = []
+    for band in candidates:
+        if not groups or band[0][1]-groups[-1][-1][0][1] > 50:
+            groups.append([])
+        groups[-1].append(band)
+    result = []
+    for group in groups:
+        if len(group) < 3:
+            continue
+        anchors = []
+        for band in group:
+            for word in band:
+                if not any(abs(word[0]-x) < 3 for x in anchors):
+                    anchors.append(word[0])
+        anchors.sort()
+        if len(anchors) < 2:
+            continue
+        values, boxes = [], []
+        for band in group:
+            row, rects = [None]*len(anchors), [None]*len(anchors)
+            for word in band:
+                col = min(range(len(anchors)), key=lambda i: abs(anchors[i]-word[0]))
+                row[col], rects[col] = word[4], tuple(word[:4])
+            values.append(row)
+            boxes.append(rects)
+        words = [w for band in group for w in band]
+        bbox = (min(w[0] for w in words), min(w[1] for w in words),
+                max(w[2] for w in words), max(w[3] for w in words))
+        result.append(PDFTable(number, bbox, values, boxes, method='text'))
+    return result
