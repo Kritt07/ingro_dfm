@@ -8,9 +8,15 @@ from .pdf_types import PDFExtraction, PDFPage, PDFTable, TextBlock
 logger = logging.getLogger(__name__)
 
 def _read_page(page, number, kind):
-    return PDFPage(number, kind, [TextBlock(tuple(b[:4]), b[4])
-                                 for b in page.get_text('blocks') if b[6] == 0],
-                   _extract_tables(page, number))
+    tables = _extract_tables(page, number)
+    blocks = []
+    for block in page.get_text('dict')['blocks']:
+        for line in block.get('lines', []):
+            rect = pymupdf.Rect(line['bbox'])
+            center = (rect.tl + rect.br) / 2
+            if not any(pymupdf.Rect(t.bbox).contains(center) for t in tables):
+                blocks.append(TextBlock(tuple(rect), ''.join(s['text'] for s in line['spans'])))
+    return PDFPage(number, kind, blocks, tables)
 
 def extract_pdf(path: str | Path) -> PDFExtraction:
     """Извлечь PDF; ошибки страниц сохранить, остальные страницы продолжить."""
@@ -52,7 +58,7 @@ def _extract_tables(page, number):
         xs = sorted({v for row in boxes for b in row if b for v in (b[0], b[2])})
         ys = sorted({v for row in boxes for b in row if b for v in (b[1], b[3])})
         merged = []
-        for r, row in enumerate(boxes):
+        for r, row in enumerate([list(row) for row in boxes]):
             for c, box in enumerate(row):
                 if box is None:
                     continue
