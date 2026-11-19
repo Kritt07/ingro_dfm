@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
 from enum import Enum
 from typing import Any, List, Literal, Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+RANGE_PATTERN = re.compile(r"^\s*([+-]?\d+(?:\.\d+)?)\s*[-–—]\s*([+-]?\d+(?:\.\d+)?)\s*$")
 
 
 class SourceFormat(str, Enum):
@@ -23,9 +26,9 @@ class SourceFormat(str, Enum):
 
 
 class AxisCondition(str, Enum):
-    UP_TO = "up_to"        # «до» (берём первую строку/столбец, где val <= max)
-    OVER = "over"          # «свыше»
-    EXACT = "exact"        # точное совпадение
+    UP_TO = "up_to"
+    OVER = "over"
+    EXACT = "exact"
 
 
 class ModifierOperation(str, Enum):
@@ -39,28 +42,57 @@ class SourceMetadata(BaseModel):
     source_file: str = Field(..., description="Имя или путь к исходному файлу")
     source_format: SourceFormat = Field(..., description="Определённый формат документа")
     page_number: Optional[int] = Field(default=None, ge=1, description="Номер страницы источника")
-    extraction_method: str = Field(..., description="Метод извлечения (pdfplumber, docx, openpyxl, ocr_paddle_v2 и др.)")
+    extraction_method: str = Field(..., description="Метод извлечения")
     ocr_confidence_avg: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Средняя уверенность OCR")
     requires_manual_review: bool = Field(default=False, description="Флаг необходимости ручной проверки")
     warnings: List[str] = Field(default_factory=list, description="Диагностические предупреждения")
 
 
 class ApplicabilityConditions(BaseModel):
-    operation_type: str = Field(..., description="Вид обработки (Сверление, Точение, Фрезерование и др.)")
+    operation_type: str = Field(..., description="Вид обработки")
     production_type: Optional[str] = Field(default=None, description="Тип производства")
     material_group: Optional[str] = Field(default=None, description="Группа обрабатываемого материала и твёрдость")
     equipment_filter: Optional[str] = Field(default=None, description="Тип или параметры оборудования")
     tool_material: Optional[str] = Field(default=None, description="Материал режущей части инструмента")
-    extra_params: dict[str, Any] = Field(default_factory=dict, description="Дополнительные условия (Ra, квалитет, L/D)")
+    extra_params: dict[str, Any] = Field(default_factory=dict, description="Дополнительные условия")
 
 
 CellValue = Union[float, List[float], None]
 
 
+def _parse_and_validate_cell(cell: Any) -> CellValue:
+    if cell is None:
+        return None
+    if isinstance(cell, (int, float)):
+        return float(cell)
+    if isinstance(cell, list):
+        if len(cell) != 2:
+            raise ValueError(f"Диапазон в ячейке должен содержать ровно 2 границы, получено {len(cell)}: {cell}")
+        low, high = float(cell[0]), float(cell[1])
+        if low > high:
+            raise ValueError(f"Обратный порядок границ диапазона: {low} > {high}")
+        return [low, high]
+    if isinstance(cell, str):
+        cleaned = cell.strip().replace(",", ".")
+        if cleaned in {"", "-", "–", "—", "null", "None"}:
+            return None
+
+        range_match = RANGE_PATTERN.match(cleaned)
+        if range_match:
+            low = float(range_match.group(1))
+            high = float(range_match.group(2))
+            if low > high:
+                raise ValueError(f"Обратный порядок границ диапазона: {low} > {high}")
+            return [low, high]
+
+        return float(cleaned)
+    raise ValueError(f"Неподдерживаемый тип значения ячейки: {type(cell)}")
+
+
 class TableGrid(BaseModel):
-    row_param_name: str = Field(..., description="Имя параметра по строкам (например, diameter_d_mm)")
+    row_param_name: str = Field(..., description="Имя параметра по строкам")
     row_condition: AxisCondition = Field(default=AxisCondition.UP_TO)
-    col_param_name: Optional[str] = Field(default=None, description="Имя параметра по столбцам (null для 1D-таблиц)")
+    col_param_name: Optional[str] = Field(default=None, description="Имя параметра по столбцам")
     col_condition: Optional[AxisCondition] = Field(default=AxisCondition.UP_TO)
     rows_range: List[Union[float, str]] = Field(..., min_length=1, description="Границы интервалов строк")
     cols_range: List[Union[float, str]] = Field(default_factory=list, description="Границы интервалов столбцов")
@@ -76,28 +108,7 @@ class TableGrid(BaseModel):
             if not isinstance(row, list):
                 normalized.append(row)
                 continue
-            norm_row: list[Any] = []
-            for cell in row:
-                if cell is None:
-                    norm_row.append(None)
-                elif isinstance(cell, (int, float)):
-                    norm_row.append(float(cell))
-                elif isinstance(cell, str):
-                    cleaned = cell.strip().replace(",", ".")
-                    if cleaned in {"", "-", "–", "—", "null", "None"}:
-                        norm_row.append(None)
-                    elif "-" in cleaned or "–" in cleaned:
-                        sep = "–" if "–" in cleaned else "-"
-                        parts = [p.strip() for p in cleaned.split(sep) if p.strip()]
-                        if len(parts) == 2:
-                            norm_row.append([float(parts[0]), float(parts[1])])
-                        else:
-                            norm_row.append(float(cleaned))
-                    else:
-                        norm_row.append(float(cleaned))
-                else:
-                    norm_row.append(cell)
-            normalized.append(norm_row)
+            normalized.append([_parse_and_validate_cell(cell) for cell in row])
         return normalized
 
     @model_validator(mode="after")
@@ -119,9 +130,9 @@ class TableGrid(BaseModel):
 
 
 class NoteCoefficientRule(BaseModel):
-    note_id: str = Field(..., description="Идентификатор правила (NOTE_01)")
+    note_id: str = Field(..., description="Идентификатор правила")
     raw_text: str = Field(..., description="Исходный текст примечания из карты")
-    condition_key: str = Field(..., description="Ключ условия в паспорте детали (is_blind_hole и др.)")
+    condition_key: str = Field(..., description="Ключ условия в паспорте детали")
     condition_value: Union[bool, float, int, str] = Field(..., description="Значение условия срабатывания")
     modifier_operation: ModifierOperation = Field(default=ModifierOperation.MULTIPLY)
     target_variable: str = Field(default="Ttbl", description="Целевая переменная формулы")

@@ -3,6 +3,7 @@ from typing import List, Optional
 import typer
 
 from norm_importer.logger import setup_logger
+from norm_importer.office_parser import OFFICE_EXTENSIONS, parse_office_file
 from norm_importer.schema import (
     ApplicabilityConditions,
     NormCard,
@@ -36,28 +37,75 @@ def collect_input_files(input_path: Path) -> List[Path]:
     return []
 
 
+def build_batch_output_path(file_path: Path, input_root: Path, output_dir: Path) -> Path:
+    """Формирует уникальный путь выходного JSON с учётом подпапок и исходного расширения."""
+    ext_tag = file_path.suffix.lstrip(".").lower() or "file"
+    if input_root.is_dir():
+        rel_parent = file_path.relative_to(input_root).parent
+        target_subdir = output_dir / rel_parent
+    else:
+        target_subdir = output_dir
+    target_subdir.mkdir(parents=True, exist_ok=True)
+    return target_subdir / f"{file_path.stem}_{ext_tag}.json"
+
+
+def _detect_format_via_router(file_path: Path) -> SourceFormat:
+    """Определяет SourceFormat через FormatRouter Разработчика 1 (с fallback по расширению)."""
+    try:
+        from normdoc2json.format_router import inspect_file
+        info = inspect_file(file_path)
+        detected = getattr(info, "source_format", None) or getattr(info, "format", None)
+        if detected:
+            val = detected.value if hasattr(detected, "value") else str(detected)
+            return SourceFormat(val)
+    except Exception:
+        pass
+
+    ext = file_path.suffix.lower()
+    mapping = {
+        ".pdf": SourceFormat.PDF_VECTOR,
+        ".docx": SourceFormat.DOCX,
+        ".doc": SourceFormat.DOC,
+        ".rtf": SourceFormat.RTF,
+        ".odt": SourceFormat.ODT,
+        ".txt": SourceFormat.TXT,
+        ".xlsx": SourceFormat.XLSX,
+        ".xls": SourceFormat.XLS,
+        ".csv": SourceFormat.CSV,
+        ".ods": SourceFormat.ODS,
+        ".tiff": SourceFormat.TIFF,
+        ".tif": SourceFormat.TIFF,
+    }
+    return mapping.get(ext, SourceFormat.IMAGE)
+
+
 def process_single_file(
     file_path: Path,
-    output_dir: Path,
     ocr_lang: str,
     debug_images: bool,
     logger,
 ) -> NormDocDocument:
-    """Точка интеграции конвейера: Format Router -> Extractor/OCR -> Semantic Parser -> Pydantic."""
+    """Маршрутизация файла по экстракторам Дней 2–5."""
     logger.info(f"Начало обработки файла: {file_path.name} (ocr_lang={ocr_lang}, debug={debug_images})")
+    ext = file_path.suffix.lower()
 
-    doc = NormDocDocument(
+    if ext in OFFICE_EXTENSIONS:
+        return parse_office_file(file_path)
+
+    detected_format = _detect_format_via_router(file_path)
+
+    return NormDocDocument(
         source_metadata=SourceMetadata(
             source_file=file_path.name,
-            source_format=SourceFormat.TXT,
+            source_format=detected_format,
             page_number=1,
-            extraction_method="skeleton_stub_day1",
+            extraction_method="router_integrated_stub",
             requires_manual_review=True,
-            warnings=["Каркас Дня 1: парсер формата еще не подключен"],
+            warnings=[f"Экстрактор для формата {detected_format.value} ожидает подключения в следующем этапе"],
         ),
         cards=[
             NormCard(
-                card_id="STUB_CARD_01",
+                card_id=f"{file_path.stem.upper()}_STUB_01",
                 card_title=f"Заготовка карты из {file_path.name}",
                 applicability_conditions=ApplicabilityConditions(operation_type="Не определено"),
                 calculation_formula="Ttbl",
@@ -70,12 +118,6 @@ def process_single_file(
             )
         ],
     )
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    out_file = output_dir / f"{file_path.stem}.json"
-    doc.to_json_file(str(out_file))
-    logger.info(f"Сохранен результат: {out_file}")
-    return doc
 
 
 @app.command()
@@ -111,12 +153,16 @@ def convert(
 
     for file_path in files:
         try:
-            target_dir = output_path.parent if is_single_target_file else output_path
-            doc = process_single_file(file_path, target_dir, ocr_lang, debug_images, logger)
+            doc = process_single_file(file_path, ocr_lang, debug_images, logger)
             if is_single_target_file:
-                generated = target_dir / f"{file_path.stem}.json"
-                if generated != output_path:
-                    generated.replace(output_path)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                out_file = output_path
+            else:
+                out_file = build_batch_output_path(file_path, input_path, output_path)
+
+            doc.to_json_file(str(out_file))
+            logger.info(f"Сохранен результат: {out_file}")
+
             if doc.source_metadata.requires_manual_review or doc.source_metadata.warnings:
                 has_issues = True
         except Exception as exc:
