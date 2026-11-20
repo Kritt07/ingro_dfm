@@ -68,3 +68,23 @@ def test_continue_after_page_error(tmp_path, monkeypatch):
     assert results[0].image is None
     assert results[0].requires_manual_review
     assert results[1].image is not None
+
+
+def test_uneven_light_and_noise():
+    source = table()
+    rng = np.random.default_rng(42)
+    light = np.linspace(0.55, 1.0, 800)[None, :, None]
+    noisy = np.clip(source * light + rng.normal(0, 3, source.shape), 0, 255).astype(np.uint8)
+    result = preprocess_page(ImagePage('test', 1, noisy, (300, 300)))
+    assert result.image is not None
+    assert np.mean(result.image[source[:, :, 0] == 0] == 0) > 0.95
+    assert np.mean(result.image[20:80, 100:700] == 255) > 0.99
+
+
+def test_public_api(tmp_path):
+    from normdoc2json import iter_preprocessed_images as public_api
+    path = tmp_path / 'table.png'
+    Image.fromarray(table()).save(path, dpi=(300, 300))
+    result = next(public_api(path))
+    assert result.page_number == 1
+    assert result.image is not None
