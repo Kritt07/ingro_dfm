@@ -6,6 +6,7 @@ import csv
 from norm_importer.logger import setup_logger
 from norm_importer.grid_mapper import map_raw_grid_to_table_grid
 from norm_importer.office_parser import OFFICE_EXTENSIONS, parse_office_file
+from norm_importer.header_parser import parse_card_header
 from norm_importer.schema import (
     ApplicabilityConditions,
     NormCard,
