@@ -9,3 +9,14 @@ __all__ = ["Inspection", "InspectionError", "inspect_file",
 from .pdf import extract_pdf
 from .pdf_types import PDFExtraction, PDFPage, PDFTable, TextBlock
 __all__ += ["extract_pdf", "PDFExtraction", "PDFPage", "PDFTable", "TextBlock"]
+
+from .image_io import ImagePage, iter_image_pages
+
+
+def iter_preprocessed_images(path, *, target_dpi=300, max_pixels=40_000_000):
+    """Лениво подключить OpenCV только при запросе предобработки."""
+    from .preprocessing import iter_preprocessed_images as preprocess
+    return preprocess(path, target_dpi=target_dpi, max_pixels=max_pixels)
+
+
+__all__ += ['ImagePage', 'iter_image_pages', 'iter_preprocessed_images']
