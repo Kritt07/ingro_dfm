@@ -1,6 +1,7 @@
 from pathlib import Path
 from docx import Document
-
+import openpyxl
+from norm_importer.cli import _parse_spreadsheet_file
 from norm_importer.header_parser import extract_formula, parse_card_header
 from norm_importer.office_parser import parse_office_file
 
@@ -69,3 +70,63 @@ def test_office_parser_uses_header_parser(tmp_path: Path):
     assert card.applicability_conditions.extra_params["roughness_ra"] == "2.5"
     assert card.applicability_conditions.extra_params["it_grade"] == "9...8"
     assert card.calculation_formula == "Ttbl * Ktv"
+    
+def test_hardness_and_bilateral_ld_ratio_extraction():
+    """Проверка сохранения твёрдости материала и одно-/двусторонних ограничений L/D (ревью Дня 4)."""
+    # 1. Двустороннее ограничение L/D и твёрдость в одной строке
+    parsed_bilateral = parse_card_header(
+        [
+            "Карта 43. Точение чистовое, 3<L/D<=10",
+            "Материал: Сталь 170...210 HB, резец Т15К6",
+        ],
+        fallback_stem="TOK2003",
+        card_index=43,
+    )
+    assert parsed_bilateral.applicability.material_group == "Сталь 170...210 HB"
+    assert parsed_bilateral.applicability.extra_params["hardness"] == "170...210 HB"
+    assert parsed_bilateral.applicability.tool_material == "Т15К6"
+    assert parsed_bilateral.applicability.extra_params["ld_ratio"] == "3<L/D<=10"
+
+    # 2. Односторонние и десятичные ограничения L/D
+    p_gt = parse_card_header(["Сверление глубоких отверстий L/D > 3"])
+    assert p_gt.applicability.extra_params["ld_ratio"] == ">3"
+
+    p_le = parse_card_header(["Точение жестких валов L/D ≤ 10"])
+    assert p_le.applicability.extra_params["ld_ratio"] == "≤10"
+
+    p_dec = parse_card_header(["Обработка 0,5 <= L/D < 2,5"])
+    assert p_dec.applicability.extra_params["ld_ratio"] == "0.5<=L/D<2.5"
+
+
+def test_xlsx_header_and_formula_integration(tmp_path: Path):
+    """Сквозной тест XLSX: извлечение номера карты, операции, условий и явной формулы из листа."""
+    xlsx_path = tmp_path / "sample.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Карта 43 Точение"
+
+    # Строки преамбулы на листе (условия и явная формула)
+    ws.append(["Материал: Сталь 170...210 HB, резец Т15К6, Ra 2,5, 9...8 квалитет, 3<L/D<=10"])
+    ws.append(["Формула: T = Ttbl * Ktv"])
+
+    # Таблица нормативов
+    ws.append(["Диаметр D, мм", 25, 50])
+    ws.append([20, "0,85", "0,90"])
+    ws.append([30, "0,92", "0,97"])
+
+    wb.save(str(xlsx_path))
+
+    doc = _parse_spreadsheet_file(xlsx_path)
+
+    assert doc.source_metadata.requires_manual_review is False
+    assert doc.source_metadata.warnings == []
+    assert len(doc.cards) == 1
+
+    card = doc.cards[0]
+    assert card.card_id == "SAMPLE_CARD_43"
+    assert card.applicability_conditions.operation_type == "Точение"
+    assert card.applicability_conditions.material_group == "Сталь 170...210 HB"
+    assert card.applicability_conditions.tool_material == "Т15К6"
+    assert card.applicability_conditions.extra_params["ld_ratio"] == "3<L/D<=10"
+    assert card.calculation_formula == "Ttbl * Ktv"
+    assert card.table_grid.values_matrix == [[0.85, 0.90], [0.92, 0.97]]

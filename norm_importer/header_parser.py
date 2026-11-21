@@ -43,6 +43,24 @@ EQUIPMENT_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 
+MATERIAL_WITH_HARDNESS_PATTERN = re.compile(
+    r"((?:сталь|чугун(?:\s+(?:серый|ковкий|высокопрочный))?|алюмини\w*\s+сплав\w*|бронз\w*|латун\w*|титан\w*\s+сплав\w*)"
+    r"(?:[\s,:\-]*(?:(?:HB|HRC|HV|ГПа|МПа)\s*)?\d+(?:[.,]\d+)?(?:\s*(?:\.\.\.|\.\.|-|–|—)\s*\d+(?:[.,]\d+)?)?\s*(?:HB|HRC|HV|ГПа|МПа))?)",
+    flags=re.IGNORECASE,
+)
+
+HARDNESS_ONLY_PATTERN = re.compile(
+    r"((?:HB|HRC|HV)\s*\d+(?:[.,]\d+)?(?:\s*(?:\.\.\.|\.\.|-|–|—)\s*\d+(?:[.,]\d+)?)?(?:\s*(?:ГПа|МПа))?|"
+    r"\d+(?:[.,]\d+)?(?:\s*(?:\.\.\.|\.\.|-|–|—)\s*\d+(?:[.,]\d+)?)?\s*(?:HB|HRC|HV))",
+    flags=re.IGNORECASE,
+)
+
+LD_RATIO_PATTERN = re.compile(
+    r"(?:(\d+(?:[.,]\d+)?)\s*([<>≤≥]=?)\s*)?"
+    r"\bL\s*/\s*D\b"
+    r"\s*([<>≤≥]=?)\s*(\d+(?:[.,]\d+)?)",
+    flags=re.IGNORECASE,
+)
 
 def extract_formula(lines: List[str]) -> str:
     """Извлекает расчётную формулу карты из текстовых строк шапки."""
@@ -65,9 +83,8 @@ def extract_formula(lines: List[str]) -> str:
 
     return "Ttbl"
 
-
 def extract_surface_and_accuracy(text: str) -> Dict[str, Any]:
-    """Извлекает параметры шероховатости (Ra/Rz) и квалитет (IT) из текста шапки."""
+    """Извлекает параметры шероховатости (Ra/Rz), квалитет (IT), твёрдость и ограничения L/D."""
     extra: Dict[str, Any] = {}
 
     ra_match = re.search(r"\bRa\s*[=:]?\s*(\d+(?:[.,]\d+)?(?:\s*(?:\.\.\.|-|–)\s*\d+(?:[.,]\d+)?)?)", text)
@@ -87,9 +104,19 @@ def extract_surface_and_accuracy(text: str) -> Dict[str, Any]:
         raw_it = it_match.group(1) or it_match.group(2)
         extra["it_grade"] = raw_it.replace(" ", "")
 
-    ld_match = re.search(r"\bL\s*/\s*D\s*([<>≤≥=]+\s*\d+(?:[.,]\d+)?)", text, flags=re.IGNORECASE)
+    ld_match = LD_RATIO_PATTERN.search(text)
     if ld_match:
-        extra["ld_ratio"] = ld_match.group(1).replace(",", ".").replace(" ", "")
+        left_num, left_op, right_op, right_num = ld_match.groups()
+        right_part = f"{right_op}{right_num.replace(',', '.')}"
+        if left_num and left_op:
+            left_part = f"{left_num.replace(',', '.')}{left_op}"
+            extra["ld_ratio"] = f"{left_part}L/D{right_part}"
+        else:
+            extra["ld_ratio"] = right_part
+
+    hardness_match = HARDNESS_ONLY_PATTERN.search(text)
+    if hardness_match:
+        extra["hardness"] = " ".join(hardness_match.group(1).strip().split())
 
     return extra
 
@@ -137,11 +164,9 @@ def parse_card_header(
         production_type = "Крупносерийное и массовое"
 
     material_group: Optional[str] = None
-    for pat in MATERIAL_PATTERNS:
-        mat_match = pat.search(full_text)
-        if mat_match:
-            material_group = mat_match.group(1).strip().rstrip(".,;")
-            break
+    mat_match = MATERIAL_WITH_HARDNESS_PATTERN.search(full_text)
+    if mat_match:
+        material_group = " ".join(mat_match.group(1).strip().rstrip(".,;").split())
 
     equipment_filter: Optional[str] = None
     eq_match = EQUIPMENT_PATTERN.search(full_text)
