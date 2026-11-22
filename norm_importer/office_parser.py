@@ -11,6 +11,8 @@ from typing import List, Optional, Tuple
 from docx import Document
 from docx.table import Table
 from norm_importer.grid_mapper import map_raw_grid_to_table_grid
+from norm_importer.header_parser import parse_card_header
+from norm_importer.notes_parser import parse_notes_to_rules
 
 from norm_importer.schema import (
     ApplicabilityConditions,
@@ -234,8 +236,13 @@ def parse_office_file(file_path: Path) -> NormDocDocument:
         raw_text = _read_text_with_fallback(working_path)
         paragraphs, raw_tables = _parse_txt_tables(raw_text)
 
-    card_title, operation_type, formula, notes = _extract_metadata_from_paragraphs(paragraphs, file_path.name)
-    rules = _parse_notes_to_rules(notes)
+    header_lines = [
+        p for p in paragraphs
+        if not re.match(r"^(?:Примечани[ея]|\d+[\.\)]\s+)", p.strip(), flags=re.IGNORECASE)
+    ]
+    parsed_header = parse_card_header(header_lines, fallback_stem=file_path.stem)
+    _, _, _, notes = _extract_metadata_from_paragraphs(paragraphs, file_path.name)
+    rules = parse_notes_to_rules(notes)
 
     cards: List[NormCard] = []
     for idx, grid in enumerate(raw_tables, start=1):
@@ -244,10 +251,11 @@ def parse_office_file(file_path: Path) -> NormDocDocument:
             warnings.extend(grid_warnings)
             cards.append(
                 NormCard(
-                    card_id=f"{file_path.stem.upper()}_CARD_{idx:02d}",
-                    card_title=card_title if len(raw_tables) == 1 else f"{card_title} (Таблица {idx})",
-                    applicability_conditions=ApplicabilityConditions(operation_type=operation_type),
-                    calculation_formula=formula,
+                    card_id=parsed_header.card_id if len(raw_tables) == 1 else f"{parsed_header.card_id}_{idx:02d}",
+                    card_title=parsed_header.card_title if len(raw_tables) == 1 else f"{parsed_header.card_title} (Таблица {idx})",
+                    applicability_conditions=parsed_header.applicability,
+                    calculation_formula=parsed_header.calculation_formula,
+                    result_unit=parsed_header.result_unit,
                     table_grid=table_grid,
                     notes_and_coefficients=rules,
                 )
@@ -255,16 +263,16 @@ def parse_office_file(file_path: Path) -> NormDocDocument:
         except Exception as exc:
             requires_manual_review = True
             warnings.append(f"Таблица {idx} пропущена из-за ошибки структуры: {exc}")
-
     if not cards:
         requires_manual_review = True
         warnings.append("В документе не обнаружены валидные нормативные таблицы; создана пустая карточка-заглушка.")
         cards.append(
             NormCard(
                 card_id=f"{file_path.stem.upper()}_EMPTY_01",
-                card_title=card_title,
-                applicability_conditions=ApplicabilityConditions(operation_type=operation_type),
-                calculation_formula=formula,
+                card_title=parsed_header.card_title,
+                applicability_conditions=parsed_header.applicability,
+                calculation_formula=parsed_header.calculation_formula,
+                result_unit=parsed_header.result_unit,
                 table_grid=TableGrid(
                     row_param_name="unknown",
                     rows_range=["stub"],
