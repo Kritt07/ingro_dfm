@@ -6,6 +6,7 @@ import csv
 from norm_importer.logger import setup_logger
 from norm_importer.grid_mapper import map_raw_grid_to_table_grid
 from norm_importer.office_parser import OFFICE_EXTENSIONS, parse_office_file
+from norm_importer.header_parser import parse_card_header
 from norm_importer.schema import (
     ApplicabilityConditions,
     NormCard,
@@ -28,6 +29,28 @@ SUPPORTED_EXTENSIONS = {
 }
 
 SPREADSHEET_EXTENSIONS = {".xlsx", ".xls", ".csv", ".ods"}
+
+def _split_sheet_preamble_and_table(rows: List[List[str]]) -> Tuple[List[str], List[List[str]]]:
+    """
+    Отделяет верхние строки метаданных листа Excel (заголовок карты, формула, материал)
+    от собственно таблицы нормативов (начиная со строки, где >= 2 непустых ячеек).
+    """
+    preamble: List[str] = []
+    table_start = 0
+
+    for idx, row in enumerate(rows):
+        non_empty = [c.strip() for c in row if c and c.strip()]
+        if not non_empty:
+            continue
+        if len(non_empty) == 1:
+            preamble.append(non_empty[0])
+            table_start = idx + 1
+        else:
+            table_start = idx
+            break
+
+    return preamble, rows[table_start:]
+
 
 def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
     """Извлекает таблицы из .xlsx / .csv (через spreadsheets.py Разработчика 1 или openpyxl/csv)."""
@@ -54,7 +77,6 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
             if isinstance(grid, list):
                 raw_grids.append((str(title), grid))
     except Exception:
-        # Надёжный встроенный fallback для .csv и .xlsx
         try:
            if ext == ".csv":
                extraction_method = "csv_grid_mapper"
@@ -79,14 +101,19 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
     cards: List[NormCard] = []
     for idx, (sheet_title, grid) in enumerate(raw_grids, start=1):
         try:
-            table_grid, grid_warnings = map_raw_grid_to_table_grid(grid)
+            preamble_lines, table_rows = _split_sheet_preamble_and_table(grid)
+            header_context = [sheet_title, *preamble_lines, file_path.stem]
+            parsed_header = parse_card_header(header_context, fallback_stem=file_path.stem, card_index=idx)
+
+            table_grid, grid_warnings = map_raw_grid_to_table_grid(table_rows)
             warnings.extend(grid_warnings)
             cards.append(
                 NormCard(
-                    card_id=f"{file_path.stem.upper()}_SHEET_{idx:02d}",
-                    card_title=f"Карта ({sheet_title})",
-                    applicability_conditions=ApplicabilityConditions(operation_type="Механическая обработка"),
-                    calculation_formula="Ttbl",
+                    card_id=parsed_header.card_id,
+                    card_title=parsed_header.card_title if sheet_title else f"Карта {idx:02d}",
+                    applicability_conditions=parsed_header.applicability,
+                    calculation_formula=parsed_header.calculation_formula,
+                    result_unit=parsed_header.result_unit,
                     table_grid=table_grid,
                 )
             )

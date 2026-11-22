@@ -55,3 +55,10 @@ PDF классифицируется как `pdf_text`, `pdf_scanned`, `pdf_hybr
 
 `from normdoc2json import extract_pdf` — извлечение таблиц и текста с координатами.
 Контракт, проверки и ограничения: [DAY3_PROGRAMMER1.md](DAY3_PROGRAMMER1.md).
+
+## Предобработка изображений — день 4
+
+`from normdoc2json import iter_preprocessed_images` — потоковая подготовка
+JPEG/JPG, PNG, TIFF/TIF, BMP и WEBP к OCR. Требуется OpenCV из файла зависимостей.
+Контракт, пример вызова, проверки и ограничения:
+[DAY4_PROGRAMMER1.md](DAY4_PROGRAMMER1.md).
