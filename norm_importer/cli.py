@@ -31,6 +31,28 @@ SUPPORTED_EXTENSIONS = {
 
 SPREADSHEET_EXTENSIONS = {".xlsx", ".xls", ".csv", ".ods"}
 
+def _split_sheet_preamble_and_table(rows: List[List[str]]) -> Tuple[List[str], List[List[str]]]:
+    """
+    Отделяет верхние строки метаданных листа Excel (заголовок карты, формула, материал)
+    от собственно таблицы нормативов (начиная со строки, где >= 2 непустых ячеек).
+    """
+    preamble: List[str] = []
+    table_start = 0
+
+    for idx, row in enumerate(rows):
+        non_empty = [c.strip() for c in row if c and c.strip()]
+        if not non_empty:
+            continue
+        if len(non_empty) == 1:
+            preamble.append(non_empty[0])
+            table_start = idx + 1
+        else:
+            table_start = idx
+            break
+
+    return preamble, rows[table_start:]
+
+
 def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
     """Извлекает таблицы из .xlsx / .csv (через spreadsheets.py Разработчика 1 или openpyxl/csv)."""
     ext = file_path.suffix.lower()
@@ -56,7 +78,6 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
             if isinstance(grid, list):
                 raw_grids.append((str(title), grid))
     except Exception:
-        # Надёжный встроенный fallback для .csv и .xlsx
         try:
            if ext == ".csv":
                extraction_method = "csv_grid_mapper"

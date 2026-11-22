@@ -242,7 +242,10 @@ def parse_office_file(file_path: Path) -> NormDocDocument:
     ]
     parsed_header = parse_card_header(header_lines, fallback_stem=file_path.stem)
     _, _, _, notes = _extract_metadata_from_paragraphs(paragraphs, file_path.name)
-    rules = parse_notes_to_rules(notes)
+    rules = _parse_notes_to_rules(notes)
+    
+    card_title, operation_type, formula, notes = _extract_metadata_from_paragraphs(paragraphs, file_path.name)
+    rules = _parse_notes_to_rules(notes)
 
     cards: List[NormCard] = []
     for idx, grid in enumerate(raw_tables, start=1):
