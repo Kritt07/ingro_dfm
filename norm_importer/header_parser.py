@@ -58,7 +58,7 @@ HARDNESS_ONLY_PATTERN = re.compile(
 LD_RATIO_PATTERN = re.compile(
     r"(?:(\d+(?:[.,]\d+)?)\s*([<>≤≥]=?)\s*)?"
     r"\bL\s*/\s*D\b"
-    r"\s*([<>≤≥]=?)\s*(\d+(?:[.,]\d+)?)",
+    r"\s*([<>≤≥]=?|=)\s*(\d+(?:[.,]\d+)?)",
     flags=re.IGNORECASE,
 )
 

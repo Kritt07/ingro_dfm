@@ -98,6 +98,12 @@ def test_hardness_and_bilateral_ld_ratio_extraction():
     assert p_dec.applicability.extra_params["ld_ratio"] == "0.5<=L/D<2.5"
 
 
+def test_ld_ratio_equality_is_preserved():
+    for condition, expected in [("L/D=3", "=3"), ("L / D = 2,5", "=2.5")]:
+        parsed = parse_card_header([f"Карта 43. Точение {condition}"])
+        assert parsed.applicability.extra_params["ld_ratio"] == expected
+
+
 def test_xlsx_header_and_formula_integration(tmp_path: Path):
     """Сквозной тест XLSX: извлечение номера карты, операции, условий и явной формулы из листа."""
     xlsx_path = tmp_path / "sample.xlsx"
