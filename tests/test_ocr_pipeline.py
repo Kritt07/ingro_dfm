@@ -26,3 +26,15 @@ def test_pdf_pixel_limit(tmp_path):
     pages=list(iter_ocr_pages(path,engine=object(),max_pixels=100))
     assert pages[0].requires_manual_review
     assert 'pixel limit' in pages[0].warnings[0]
+
+
+def test_bad_cell_keeps_card_and_raw_evidence(monkeypatch):
+    from normdoc2json.ocr import OCRPage, ocr_document
+    from normdoc2json.ocr_tables import OCRTable
+    table=OCRTable((0,0,100,100),[['D','10','20'],['5','0,28','?']],[],[])
+    monkeypatch.setattr('normdoc2json.ocr.iter_ocr_pages',lambda *a,**k:iter([OCRPage('test.png',1,[table])]))
+    document=ocr_document('test.png')
+    assert document.cards[0].table_grid.values_matrix==[[.28,None]]
+    assert table.values[1][2]=='?'
+    assert document.source_metadata.requires_manual_review
+    assert any("R2C3" in w and "'?'" in w for w in document.source_metadata.warnings)

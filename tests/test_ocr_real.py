@@ -37,9 +37,13 @@ def test_real_scan_tiff_pdf_json(tmp_path,engine):
     pdf=tmp_path/'scan.pdf'
     doc=pymupdf.open();page=doc.new_page(width=240,height=168)
     stream=io.BytesIO();image.save(stream,format='PNG')
-    page.insert_image(page.rect,stream=stream.getvalue());doc.save(pdf);doc.close()
+    page.insert_image(page.rect,stream=stream.getvalue())
+    hybrid=doc.new_page(width=240,height=168)
+    hybrid.insert_image(hybrid.rect,stream=stream.getvalue())
+    hybrid.insert_text((10,165),'hybrid page',fontsize=4)
+    doc.save(pdf);doc.close()
     start=time.perf_counter()
-    for path,count in [(png,1),(tiff,2),(pdf,1)]:
+    for path,count in [(png,1),(tiff,2),(pdf,2)]:
         pages=list(iter_ocr_pages(path,engine=engine,debug_dir=tmp_path/'debug'))
         assert len(pages)==count
         for page in pages:
@@ -56,4 +60,4 @@ def test_real_scan_tiff_pdf_json(tmp_path,engine):
     assert result.exit_code==1
     assert NormDocDocument.model_validate_json(output.read_text(encoding='utf-8')).cards[0].table_grid.values_matrix==[[.28,0],[.45,.88]]
     assert list((tmp_path/'scan.png.debug').glob('*.png'))
-    print(f'Real OCR: {time.perf_counter()-start:.2f}s for 5 page passes')
+    print(f'Real OCR: {time.perf_counter()-start:.2f}s for 7 page passes including CLI')

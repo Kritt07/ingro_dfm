@@ -1,5 +1,6 @@
 """Stream image/TIFF/PDF pages through OCR, retaining raw evidence."""
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+import json
 from pathlib import Path
 import logging
 import numpy as np
@@ -54,7 +55,7 @@ def iter_ocr_pages(path, *, lang='rus+eng', engine=None, debug_dir=None,
     """OCR all pages at 300 DPI; isolate failures and release each image in turn.
 
     Hybrid PDF pages are rendered once, avoiding duplicate text-layer/OCR data.
-    A supplied engine must expose recognize(image, psm=11).
+    A supplied engine must expose recognize(image, psm=6).
     """
     engine = engine or TesseractEngine(lang=lang)
     for page in _pages(path,max_pixels):
@@ -92,6 +93,8 @@ def iter_ocr_pages(path, *, lang='rus+eng', engine=None, debug_dir=None,
                                 if box:
                                     draw.rectangle(box,outline='red',width=2)
                     canvas.save(destination / f'{Path(path).name}.page-{page.page_number:04d}.png')
+                    (destination / f'{Path(path).name}.page-{page.page_number:04d}.json').write_text(
+                        json.dumps(asdict(result),ensure_ascii=False,indent=2),encoding='utf-8')
         except Exception as exc:
             result.warnings.append(f'OCR page failed: {exc}')
         for warning in result.warnings:
@@ -101,8 +104,8 @@ def iter_ocr_pages(path, *, lang='rus+eng', engine=None, debug_dir=None,
 
 def ocr_document(path, **kwargs):
     """Build Appendix A JSON model, carrying uncertain cells into diagnostics."""
-    from norm_importer.schema import NormDocDocument, NormCard, SourceMetadata, SourceFormat
-    from norm_importer.grid_mapper import map_raw_grid_to_table_grid
+    from norm_importer.schema import NormDocDocument, NormCard, SourceMetadata, SourceFormat, _parse_and_validate_cell
+    from norm_importer.grid_mapper import map_raw_grid_to_table_grid, _is_numeric_row_label
     from norm_importer.header_parser import parse_card_header
     cards, warnings, confidences = [], [], []
     for page in iter_ocr_pages(path,**kwargs):
@@ -117,7 +120,21 @@ def ocr_document(path, **kwargs):
                 for group in lines.values()]
         for index, table in enumerate(page.tables,1):
             try:
-                grid, notes = map_raw_grid_to_table_grid(table.values)
+                raw_grid=[list(row) for row in table.values]
+                data_started=False
+                for r,row in enumerate(raw_grid):
+                    if r and _is_numeric_row_label(str(row[0] or '')):
+                        data_started=True
+                    if not data_started:
+                        continue
+                    for c in range(1,len(row)):
+                        try:
+                            _parse_and_validate_cell(row[c])
+                        except (ValueError,TypeError):
+                            warnings.append(f'Page {page.page_number} table {index} R{r+1}C{c+1}: '
+                                            f'unrecognized numeric cell {row[c]!r}; stored null')
+                            row[c]=None
+                grid, notes = map_raw_grid_to_table_grid(raw_grid)
                 warnings.extend(f'Page {page.page_number} table {index}: {n}' for n in notes)
                 header = parse_card_header(text,fallback_stem=Path(path).stem)
                 cards.append(NormCard(card_id=f'{header.card_id}_P{page.page_number}_T{index}',
