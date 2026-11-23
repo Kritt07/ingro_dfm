@@ -32,6 +32,9 @@ class TesseractEngine:
         if not self.executable:
             raise RuntimeError('Tesseract not installed; set executable or add it to PATH')
         self.lang, self.timeout = lang, timeout
+        tessdata = tessdata or os.environ.get('INGRO_TESSDATA')
+        if not tessdata and (Path(__file__).resolve().parents[1]/'.ocr_models/rus.traineddata').exists():
+            tessdata = Path(__file__).resolve().parents[1]/'.ocr_models'
         self.options = ['--tessdata-dir', str(tessdata)] if tessdata else []
         available = self._run(['--list-langs', *self.options]).splitlines()
         missing = set(lang.split('+')) - set(available)
@@ -46,13 +49,13 @@ class TesseractEngine:
             raise RuntimeError(result.stderr.strip() or 'Tesseract failed')
         return result.stdout
 
-    def recognize(self, image, psm=11):
+    def recognize(self, image, psm=6):
         """Recognize an entire image, returning original words and confidence."""
         with tempfile.TemporaryDirectory(prefix='ingro_ocr_') as folder:
             path = Path(folder) / 'page.png'
             Image.fromarray(image).save(path, dpi=(300, 300))
             raw = self._run([str(path), 'stdout', *self.options, '-l', self.lang,
-                             '--oem', '1', '--psm', str(psm), 'tsv'])
+                             '--oem', '1', '--psm', str(psm), '-c', 'tessedit_create_tsv=1'])
         words = []
         for row in csv.DictReader(io.StringIO(raw), delimiter='\t', quoting=csv.QUOTE_NONE):
             if row['level'] != '5' or not row.get('text', '').strip():

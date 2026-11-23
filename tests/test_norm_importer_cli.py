@@ -71,7 +71,8 @@ def test_cli_strict_mode_returns_nonzero_on_manual_review(tmp_path: Path):
     )
 
     assert result.exit_code == 1
-    assert (output_dir / "scan_png.json").exists()
+    # A corrupt image must not produce a fabricated normative card.
+    assert not (output_dir / "scan_png.json").exists()
 
 
 def test_cli_empty_directory_exits_with_error(tmp_path: Path):
