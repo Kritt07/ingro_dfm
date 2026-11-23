@@ -2,12 +2,14 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 import typer
 import csv
+import re
 
 from norm_importer.logger import setup_logger
 from norm_importer.grid_mapper import map_raw_grid_to_table_grid
 from norm_importer.office_parser import OFFICE_EXTENSIONS, parse_office_file
 from norm_importer.header_parser import parse_card_header
 from norm_importer.notes_parser import parse_notes_to_rules
+from norm_importer.notes_parser import parse_notes_with_diagnostics
 from norm_importer.schema import (
     ApplicabilityConditions,
     NormCard,
@@ -98,26 +100,20 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
         except Exception as exc:
                 requires_manual_review = True
                 warnings.append(f"Ошибка чтения табличного файла {file_path.name}: {exc}")
-    cards: List[NormCard] = []
+        cards: List[NormCard] = []
     for idx, (sheet_title, grid) in enumerate(raw_grids, start=1):
         try:
-            preamble_lines: List[str] = []
-            table_start = 0
-            for r_idx, row in enumerate(grid):
-                non_empty = [c.strip() for c in row if c and c.strip()]
-                if not non_empty:
-                    continue
-                if len(non_empty) == 1:
-                    preamble_lines.append(non_empty[0])
-                    table_start = r_idx + 1
-                else:
-                    table_start = r_idx
-                    break
-
-            table_rows = grid[table_start:]
+            preamble_lines, table_rows, footer_notes = _split_sheet_sections(grid)
             header_context = [sheet_title, *preamble_lines, file_path.stem]
             parsed_header = parse_card_header(header_context, fallback_stem=file_path.stem, card_index=idx)
-            rules = parse_notes_to_rules(preamble_lines)
+
+            rules, note_warnings = parse_notes_with_diagnostics(
+                [*preamble_lines, *footer_notes],
+                result_unit=parsed_header.result_unit,
+            )
+            warnings.extend(note_warnings)
+            if note_warnings:
+                requires_manual_review = True
 
             table_grid, grid_warnings = map_raw_grid_to_table_grid(table_rows)
             warnings.extend(grid_warnings)
@@ -165,6 +161,50 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
         ),
         cards=cards,
     )
+
+def _split_sheet_sections(rows: List[List[str]]) -> Tuple[List[str], List[List[str]], List[str]]:
+    """
+    Разделяет лист Excel на три секции:
+    1) верхнюю преамбулу (заголовок карты, формула, материал);
+    2) собственно нормативную таблицу (строки с >= 2 непустыми ячейками);
+    3) нижний блок примечаний под таблицей (начинающийся с 'Примечани...' или одиночных строк после таблицы).
+    """
+    preamble: List[str] = []
+    table_rows: List[List[str]] = []
+    footer_notes: List[str] = []
+
+    in_table = False
+    in_footer = False
+
+    for row in rows:
+        non_empty = [c.strip() for c in row if c and c.strip()]
+        if not non_empty:
+            continue
+
+        first_cell = non_empty[0]
+        is_note_marker = bool(re.match(r"^(?:Примечани[ея]|\d+[\.\)]\s+)", first_cell, flags=re.IGNORECASE))
+
+        if not in_table and not in_footer:
+            if len(non_empty) == 1 and not is_note_marker:
+                preamble.append(first_cell)
+            elif len(non_empty) >= 2 and not is_note_marker:
+                in_table = True
+                table_rows.append(row)
+            else:
+                in_footer = True
+                footer_notes.append(" ".join(non_empty))
+        elif in_table and not in_footer:
+            if is_note_marker or len(non_empty) == 1:
+                in_table = False
+                in_footer = True
+                footer_notes.append(" ".join(non_empty))
+            else:
+                table_rows.append(row)
+        else:
+            footer_notes.append(" ".join(non_empty))
+
+    return preamble, table_rows, footer_notes
+
 
 def collect_input_files(input_path: Path) -> List[Path]:
     if input_path.is_file():

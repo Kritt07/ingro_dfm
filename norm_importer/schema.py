@@ -67,7 +67,8 @@ def _parse_and_validate_cell(cell: Any) -> CellValue:
     if isinstance(cell, list):
         if len(cell) != 2:
             raise ValueError(f"Диапазон в ячейке должен содержать ровно 2 границы, получено {len(cell)}: {cell}")
-        low, high = float(cell), float(cell)
+        low = float(cell[0])
+        high = float(cell[1])
         if low > high:
             raise ValueError(f"Обратный порядок границ диапазона: {low} > {high}")
         return [low, high]
@@ -87,6 +88,7 @@ def _parse_and_validate_cell(cell: Any) -> CellValue:
 
         return float(cleaned)
     raise ValueError(f"Неподдерживаемый тип значения ячейки: {type(cell)}")
+
 
 
 class TableGrid(BaseModel):

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import re
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from norm_importer.schema import ModifierOperation, NoteCoefficientRule
 
-CONDITION_RULES: List[Tuple[str, str, bool | str]] = [
+# Общие словесные условия (проверяются ПОСЛЕ явных числовых ограничений L/D)
+TEXT_CONDITION_RULES: List[Tuple[str, str, bool | str]] = [
     (r"глух\w*\s+отверст", "is_blind_hole", True),
-    (r"глубок\w*\s+отверст|l\s*/\s*d\s*>\s*3|l\s*>\s*3\s*d", "l_to_d_ratio_gt_3", True),
-    (r"l\s*/\s*d\s*>\s*5|l\s*>\s*5\s*d", "l_to_d_ratio_gt_5", True),
+    (r"глубок\w*\s+отверст", "l_to_d_ratio_gt_3", True),
     (r"тонкостен\w*|сварн\w*\s+конструкц", "is_thin_walled", True),
     (r"с\s+покрыти\w*", "has_coating", True),
     (r"без\s+корк\w*", "without_crust", True),
@@ -18,9 +18,12 @@ CONDITION_RULES: List[Tuple[str, str, bool | str]] = [
     (r"л[её]гк\w*\s+сплав|алюмини", "material_group", "aluminum"),
 ]
 
+
 def clean_ocr_numeric_token(raw_value: str) -> str:
     """
-    Пост-обработка типичных ошибок OCR в числовых ячейках и коэффициентах.
+    Пост-обработка типичных ошибок OCR в числовых ячейках и коэффициентах:
+    - замена букв 'О'/'O' на '0', 'З' на '3', 'Б' на '6', 'I'/'l'/'|' на '1' в числовом окружении;
+    - удаление пробелов и приведение разделителей (',', ';', ':') к '.'.
     """
     text = raw_value.strip()
     if not text or text in {"-", "–", "—", "null", "None"}:
@@ -36,26 +39,82 @@ def clean_ocr_numeric_token(raw_value: str) -> str:
 
     return text
 
+
 def clean_ocr_text_block(text: str) -> str:
-    """Исправляет типичные OCR-искажения в тексте примечаний и формул."""
-    cleaned = text
-    # Исправление "коэффициент 1,З" / "K = О,85"
-    cleaned = re.sub(
-        r"(\b[КK]\s*=\s*|[кК]оэффициент\w*\s+|на\s+)([ОOоo])([,.\d])",
-        lambda m: f"{m.group(1)}0{m.group(3)}",
-        cleaned,
-    )
-    cleaned = re.sub(r"(?<=\d),([ОOоo])\b", ".0", cleaned)
-    cleaned = re.sub(r"(?<=\d),З\b", ".3", cleaned)
-    return cleaned
+    """Исправляет типичные OCR-искажения в числовых токенах внутри текста примечаний."""
+    def _fix_token(match: re.Match[str]) -> str:
+        token = match.group(0)
+        fixed = clean_ocr_numeric_token(token)
+        if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", fixed):
+            return fixed
+        return token
+
+    # Находим слитные токены с цифрами и разделителями (например, "1,З5", "О,85", "0;Б8")
+    return re.sub(r"\b[\dОOоoЗБIl|]+[,.;:][\dОOоoЗБIl|]+\b", _fix_token, text)
 
 
-def _detect_condition(line: str, fallback_idx: int) -> Tuple[str, bool | str]:
+def _parse_strict_number(raw_token: str) -> Optional[float]:
+    """Проверяет числовой фрагмент целиком; при невосстановимом OCR-искажении возвращает None."""
+    cleaned_token = raw_token.rstrip(".,;:)")
+    fixed = clean_ocr_numeric_token(cleaned_token)
+    if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", fixed):
+        return float(fixed)
+    return None
+
+
+def _convert_time_to_card_unit(value: float, unit_token: str, result_unit: str) -> Optional[float]:
+    """Переводит поправку времени в единицу измерения карты ('min' или 'hour')."""
+    u = unit_token.strip().lower().rstrip(".")
+    if re.fullmatch(r"(?:с|сек|секунд\w*)", u):
+        minutes = value / 60.0
+    elif re.fullmatch(r"(?:м|мин|минут\w*)", u):
+        minutes = value
+    elif re.fullmatch(r"(?:ч|час\w*|нормо-?час\w*)", u):
+        minutes = value * 60.0
+    else:
+        return None
+
+    if result_unit == "min":
+        return round(minutes, 6)
+    if result_unit == "hour":
+        return round(minutes / 60.0, 6)
+    return None
+
+
+def _detect_condition(line: str, fallback_idx: int) -> Tuple[str, bool | str, Optional[str]]:
+    """
+    Определяет условие срабатывания примечания.
+    Явные числовые ограничения L/D имеют приоритет над общими словесными признаками.
+    """
     lower = line.lower()
-    for pattern, key, val in CONDITION_RULES:
+
+    # 1. Явное ограничение L/D или L > k*D (например, "L/D > 5", "L > 5D", "L/D > 3")
+    ld_explicit = re.search(
+        r"\b(?:l\s*/\s*d\s*([<>≤≥]=?)\s*(\d+(?:[.,]\d+)?)|l\s*([<>≤≥]=?)\s*(\d+(?:[.,]\d+)?)\s*d)\b",
+        lower,
+    )
+    if ld_explicit:
+        op = ld_explicit.group(1) or ld_explicit.group(3)
+        num_str = (ld_explicit.group(2) or ld_explicit.group(4)).replace(",", ".")
+        num_val = float(num_str)
+        if op == ">" and num_val == 5.0:
+            return "l_to_d_ratio_gt_5", True, None
+        if op == ">" and num_val == 3.0:
+            return "l_to_d_ratio_gt_3", True, None
+        # Неподдерживаемое явное ограничение не подменяем ближайшим известным!
+        norm_num = str(int(num_val)) if num_val.is_integer() else str(num_val).replace(".", "_")
+        return (
+            f"l_to_d_custom_{norm_num}",
+            f"{op}{num_val}",
+            f"Нестандартное ограничение L/D ({op}{num_val}) сохранено как пользовательское условие.",
+        )
+
+    # 2. Общие словесные условия
+    for pattern, key, val in TEXT_CONDITION_RULES:
         if re.search(pattern, lower, flags=re.IGNORECASE):
-            return key, val
-    return f"custom_condition_{fallback_idx}", True
+            return key, val, None
+
+    return f"custom_condition_{fallback_idx}", True, None
 
 
 def _detect_target_variable(line: str) -> str:
@@ -67,12 +126,16 @@ def _detect_target_variable(line: str) -> str:
     return "Ttbl"
 
 
-def parse_notes_to_rules(notes_lines: List[str]) -> List[NoteCoefficientRule]:
+def parse_notes_with_diagnostics(
+    notes_lines: List[str],
+    result_unit: str = "min",
+) -> Tuple[List[NoteCoefficientRule], List[str]]:
     """
-    Преобразует блок текстовых примечаний нормировочной карты в список
-    структурированных правил NoteCoefficientRule (multiply, add, subtract).
+    Разбирает примечания в структурированные правила NoteCoefficientRule
+    и возвращает кортеж (rules, warnings).
     """
     rules: List[NoteCoefficientRule] = []
+    warnings: List[str] = []
     rule_idx = 0
 
     for raw_line in notes_lines:
@@ -80,18 +143,21 @@ def parse_notes_to_rules(notes_lines: List[str]) -> List[NoteCoefficientRule]:
         if not clean_line:
             continue
 
-        add_match = re.search(
-            r"(?:добавлять|прибавить|увеличивать\s+на|\+)\s*(\d+(?:[.,]\d+)?)\s*(?:мин)?",
-            clean_line,
-            flags=re.IGNORECASE,
-        )
-        sub_match = re.search(
-            r"(?:уменьшать\s+на|вычесть|вычитать)\s*(\d+(?:[.,]\d+)?)\s*(?:мин)?",
-            clean_line,
-            flags=re.IGNORECASE,
-        )
+        # 1. Мультипликативный коэффициент: захватываем весь токен до пробела/конца фразы
         mul_match = re.search(
-            r"(?:коэффициент\w*|умножать\s+на|применять\s+с\s+[КK]\s*=|\b[КK]\s*=)\s*(\d+(?:[.,]\d+)?)",
+            r"(?:коэффициент\w*|умножать\s+на|применять\s+с\s+[КK]\s*=|\b[КK]\s*=)\s*([^\s;]+)",
+            clean_line,
+            flags=re.IGNORECASE,
+        )
+        # 2. Добавление времени с обязательной проверкой следующей за числом единицы
+        add_match = re.search(
+            r"(?:добавлять|прибавить|увеличивать\s+на)\s+([^\s;]+)(?:\s+([а-яА-Яa-zA-Z\-]+))?",
+            clean_line,
+            flags=re.IGNORECASE,
+        )
+        # 3. Вычитание времени с обязательной проверкой следующей за числом единицы
+        sub_match = re.search(
+            r"(?:уменьшать\s+на|вычесть|вычитать)\s+([^\s;]+)(?:\s+([а-яА-Яa-zA-Z\-]+))?",
             clean_line,
             flags=re.IGNORECASE,
         )
@@ -100,19 +166,45 @@ def parse_notes_to_rules(notes_lines: List[str]) -> List[NoteCoefficientRule]:
         factor: float
 
         if mul_match:
+            raw_num = mul_match.group(1)
+            parsed_num = _parse_strict_number(raw_num)
+            if parsed_num is None:
+                warnings.append(f"Неоднозначное или повреждённое значение коэффициента '{raw_num}' в примечании: {clean_line}")
+                continue
             op = ModifierOperation.MULTIPLY
-            factor = float(mul_match.group(1).replace(",", "."))
-        elif add_match:
-            op = ModifierOperation.ADD
-            factor = float(add_match.group(1).replace(",", "."))
-        elif sub_match:
-            op = ModifierOperation.SUBTRACT
-            factor = float(sub_match.group(1).replace(",", "."))
+            factor = parsed_num
+
+        elif add_match or sub_match:
+            is_add = add_match is not None
+            match = add_match if is_add else sub_match
+            assert match is not None
+            raw_num = match.group(1)
+            raw_unit = match.group(2) or ""
+
+            parsed_num = _parse_strict_number(raw_num)
+            if parsed_num is None:
+                warnings.append(f"Неоднозначное значение поправки времени '{raw_num}' в примечании: {clean_line}")
+                continue
+
+            if not raw_unit:
+                warnings.append(f"Не указана единица измерения времени для поправки '{raw_num}' в примечании: {clean_line}")
+                continue
+
+            converted = _convert_time_to_card_unit(parsed_num, raw_unit, result_unit)
+            if converted is None:
+                warnings.append(f"Неизвестная единица времени '{raw_unit}' в примечании: {clean_line}")
+                continue
+
+            op = ModifierOperation.ADD if is_add else ModifierOperation.SUBTRACT
+            factor = converted
+
         else:
             continue
 
         rule_idx += 1
-        cond_key, cond_val = _detect_condition(clean_line, rule_idx)
+        cond_key, cond_val, cond_warn = _detect_condition(clean_line, rule_idx)
+        if cond_warn:
+            warnings.append(cond_warn)
         target_var = _detect_target_variable(clean_line)
 
         rules.append(
@@ -127,4 +219,13 @@ def parse_notes_to_rules(notes_lines: List[str]) -> List[NoteCoefficientRule]:
             )
         )
 
+    return rules, warnings
+
+
+def parse_notes_to_rules(
+    notes_lines: List[str],
+    result_unit: str = "min",
+) -> List[NoteCoefficientRule]:
+    """Обратно совместимая обёртка: возвращает только список правил."""
+    rules, _ = parse_notes_with_diagnostics(notes_lines, result_unit=result_unit)
     return rules
