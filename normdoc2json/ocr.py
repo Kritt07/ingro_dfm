@@ -8,7 +8,8 @@ from PIL import Image, ImageDraw
 from .image_io import ImagePage, iter_image_pages
 from .preprocessing import preprocess_page
 from .ocr_engine import TesseractEngine, OCRWord
-from .ocr_tables import OCRTable, detect_grid, reconstruct_tables
+from .ocr_tables import OCRTable, detect_grid, reconstruct_tables, recognize_cells
+from .rectification import rectify_table_plane
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +60,20 @@ def iter_ocr_pages(path, *, lang='rus+eng', engine=None, debug_dir=None,
     for page in _pages(path,max_pixels):
         result = OCRPage(str(path),page.page_number)
         try:
-            prepared = preprocess_page(page,max_pixels=max_pixels)
+            rectified = rectify_table_plane(page)
+            prepared = preprocess_page(rectified,max_pixels=max_pixels,deskew=rectified is page)
             result.warnings.extend(prepared.warnings)
             if prepared.image is not None:
                 regions, clean = detect_grid(prepared.image)
                 words = engine.recognize(clean)
+                if regions:
+                    outside=[]
+                    for word in words:
+                        a,b,c,d=word.bbox
+                        if not any(x0<=(a+c)/2<=x1 and y0<=(b+d)/2<=y1
+                                   for (x0,y0,x1,y1),_ in regions):
+                            outside.append(word)
+                    words=outside+recognize_cells(regions,prepared.image,engine)
                 result.tables,result.blocks,notes = reconstruct_tables(regions,words,clean)
                 result.warnings.extend(notes)
                 if words:
