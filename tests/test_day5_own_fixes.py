@@ -39,3 +39,19 @@ def test_table_failure_does_not_drop_neighbor(monkeypatch):
     assert len(page.tables)==1 and page.tables[0].bbox==(150,0,250,100)
     assert any('bad table' in w for w in page.warnings)
     assert any('page text' in w for w in page.warnings)
+
+
+def test_header_ocr_keeps_resolution_and_separate_cells():
+    import numpy as np
+    from normdoc2json.ocr_tables import recognize_cells
+    image=np.full((400,400),255,np.uint8)
+    image[20:100,20:150]=0
+    image[20:100,220:350]=0
+    calls=[]
+    class Engine:
+        def recognize(self,image,psm=6):
+            calls.append(image.shape)
+            return [OCRWord('L <= 20',(20,20,70,50),.95,(1,1,1))]
+    words=recognize_cells([((0,0,400,200),[(0,0,200,200),(200,0,400,200)])],image,Engine())
+    assert len(calls)==2 and all(h>100 for h,w in calls)
+    assert len(words)==2 and words[0].bbox[0]<200<words[1].bbox[0]

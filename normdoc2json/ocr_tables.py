@@ -108,22 +108,39 @@ def reconstruct_tables(regions, words: list[OCRWord], clean, threshold=.8):
 def recognize_cells(regions, image, engine):
     """OCR a packed strip of cell interiors in one engine call, retaining coordinates."""
     patches=[]
-    for _,cells in regions:
+    header_words=[]
+    for bbox,cells in regions:
+        header_bottom=bbox[1]+2*float(np.median([c[3]-c[1] for c in cells])) if cells else bbox[1]
         for x0,y0,x1,y1 in cells:
             margin=max(4,round(min(x1-x0,y1-y0)*.08))
             crop=image[y0+margin:y1-margin,x0+margin:x1-margin]
             if not crop.size:
                 continue
+            if y0 < header_bottom and crop.shape[1]>350 and min(crop.shape)>=7:
+                crop=cv2.medianBlur(crop,7)
             ink=np.argwhere(crop<128)
             if len(ink)<8:
                 continue
             top,left=ink.min(0);bottom,right=ink.max(0)+1
             patch=crop[top:bottom,left:right]
+            if y0 < header_bottom:
+                # Keep multi-line header resolution; do not mix its lines with other cells.
+                padded=np.pad(patch,20,constant_values=255)
+                recognized_header=engine.recognize(padded,psm=6)
+                if not recognized_header:
+                    recognized_header=engine.recognize(padded,psm=7)
+                for word in recognized_header:
+                    a,b,c,d=word.bbox
+                    header_words.append(OCRWord(word.text,
+                        (int(x0+margin+left+a-20),int(y0+margin+top+b-20),
+                         int(x0+margin+left+c-20),int(y0+margin+top+d-20)),
+                        word.confidence,word.line))
+                continue
             scale=min(1.,60/patch.shape[0])
             patch=cv2.resize(patch,None,fx=scale,fy=scale)
             patches.append((patch,x0+margin+left,y0+margin+top,scale))
     if not patches:
-        return []
+        return header_words
     width=max(p[0].shape[1] for p in patches)+40
     height=sum(p[0].shape[0]+40 for p in patches)
     if width*height>40_000_000:
@@ -135,7 +152,7 @@ def recognize_cells(regions, image, engine):
         strip[offset+20:offset+20+h,20:20+w]=patch
         placements.append((offset+20,offset+20+h,x,y,scale))
         offset+=h+40
-    result=[]
+    result=list(header_words)
     recognized=set()
     for word in engine.recognize(strip,psm=6):
         a,b,c,d=word.bbox
