@@ -43,3 +43,14 @@ def test_unreadable_is_not_silent_blank():
     regions,clean=detect_grid(image)
     _,_,warnings=reconstruct_tables(regions,[],clean)
     assert any('unreadable' in w for w in warnings)
+
+
+def test_table_inside_nested_page_frames_is_found_once():
+    image=np.full((600,600),255,np.uint8)
+    for p in (150,300,450):
+        cv2.line(image,(150,p),(450,p),0,2)
+        cv2.line(image,(p,150),(p,450),0,2)
+    for offset in (20,60):cv2.rectangle(image,(offset,offset),(600-offset,600-offset),0,2)
+    regions,_=detect_grid(image)
+    assert len(regions)==1
+    assert len(regions[0][1])==4

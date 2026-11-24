@@ -38,7 +38,13 @@ def detect_grid(image):
     regions = []
     if hierarchy is not None:
         for index, contour in enumerate(contours):
-            if hierarchy[0][index][3] != -1:
+            # Even-depth contours are ink components; odd depths are holes.
+            parent=int(hierarchy[0][index][3])
+            depth=0
+            while parent!=-1:
+                depth+=1
+                parent=int(hierarchy[0][parent][3])
+            if depth%2:
                 continue
             x, y, w, h = cv2.boundingRect(contour)
             cells = []
