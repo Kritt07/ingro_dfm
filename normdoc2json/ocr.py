@@ -2,6 +2,7 @@
 from dataclasses import asdict, dataclass, field
 import json
 import re
+from typing import Literal, cast
 from pathlib import Path
 import logging
 import numpy as np
@@ -171,9 +172,12 @@ def ocr_document(path, **kwargs):
                 if not header_text:
                     warnings.append(f'Page {page.page_number} table {index}: no local header found')
                 header = parse_card_header(header_text,fallback_stem=Path(path).stem)
+                if header.result_unit not in {'min', 'hour', 'pct'}:
+                    raise ValueError(f'Unsupported result unit: {header.result_unit}')
+                result_unit = cast(Literal['min', 'hour', 'pct'], header.result_unit)
                 cards.append(NormCard(card_id=f'{header.card_id}_P{page.page_number}_T{index}',
                     card_title=header.card_title,applicability_conditions=header.applicability,
-                    calculation_formula=header.calculation_formula,result_unit=header.result_unit,
+                    calculation_formula=header.calculation_formula,result_unit=result_unit,
                     table_grid=grid))
                 if text:
                     warnings.append(f'Page {page.page_number} table {index}: surrounding text requires '

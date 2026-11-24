@@ -23,14 +23,16 @@ class OCRWord:
 class TesseractEngine:
     """Run a local Tesseract installation without network access."""
 
-    def __init__(self, lang='rus+eng', executable=None, tessdata=None, timeout=60):
-        self.executable = executable or shutil.which('tesseract')
-        if not self.executable and os.name == 'nt':
+    def __init__(self, lang: str = 'rus+eng', executable: str | Path | None = None,
+                 tessdata: str | Path | None = None, timeout: float = 60):
+        resolved = str(executable) if executable else shutil.which('tesseract')
+        if not resolved and os.name == 'nt':
             candidate = Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Tesseract-OCR/tesseract.exe'
             if candidate.exists():
-                self.executable = str(candidate)
-        if not self.executable:
+                resolved = str(candidate)
+        if not resolved:
             raise RuntimeError('Tesseract not installed; set executable or add it to PATH')
+        self.executable: str = resolved
         self.lang, self.timeout = lang, timeout
         tessdata = tessdata or os.environ.get('INGRO_TESSDATA')
         if not tessdata and (Path(__file__).resolve().parents[1]/'.ocr_models/rus.traineddata').exists():
@@ -41,7 +43,7 @@ class TesseractEngine:
         if missing:
             raise RuntimeError('Missing Tesseract languages: ' + ', '.join(sorted(missing)))
 
-    def _run(self, args):
+    def _run(self, args: list[str]) -> str:
         result = subprocess.run([self.executable, *args], capture_output=True,
                                 timeout=self.timeout, encoding='utf-8', errors='replace',
                                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
@@ -63,5 +65,5 @@ class TesseractEngine:
             x, y, w, h = (int(row[k]) for k in ('left', 'top', 'width', 'height'))
             words.append(OCRWord(row['text'], (x, y, x+w, y+h),
                                  max(0., min(1., float(row['conf']) / 100)),
-                                 tuple(int(row[k]) for k in ('block_num', 'par_num', 'line_num'))))
+                                 (int(row['block_num']), int(row['par_num']), int(row['line_num']))))
         return words

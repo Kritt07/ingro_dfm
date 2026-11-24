@@ -15,7 +15,7 @@ class OCRTable:
     merged_ranges: list[tuple[int, int, int, int]] = field(default_factory=list)
 
 
-def _anchors(values, tolerance=6):
+def _anchors(values, tolerance: float = 6.0):
     groups = []
     for value in sorted(values):
         if groups and value - np.mean(groups[-1]) <= tolerance:
