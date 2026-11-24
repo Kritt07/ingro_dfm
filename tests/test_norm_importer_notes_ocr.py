@@ -163,3 +163,55 @@ def test_spaced_coefficient_and_bilateral_ld_in_notes(tmp_path: Path):
     card = doc.cards.pop(0)
     assert card.card_id == "PRIMARY_PATH_CARD_05"
     assert card.table_grid.values_matrix == [[0.4, 0.55]]
+    
+def test_pr16_review_regressions(tmp_path: Path):
+    """Регрессионные тесты по замечаниям проверки PR #16."""
+    xlsx_path = tmp_path / "missing_middle_row.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    for row in [
+        ["D", 10, 20],
+        [5, 0.4, 0.5],
+        [10, None, None],
+        [15, 0.7, 0.8],
+    ]:
+        ws.append(row)
+    wb.save(str(xlsx_path))
+
+    doc = _parse_spreadsheet_file(xlsx_path)
+    assert len(doc.cards) == 1
+    grid = doc.cards.pop(0).table_grid
+    assert grid.rows_range == [5.0, 10.0, 15.0]
+    assert grid.values_matrix == [
+        [0.4, 0.5],
+        [None, None],
+        [0.7, 0.8],
+    ]
+
+    rules_multi, warns_multi = parse_notes_with_diagnostics([
+        "При обработке чугуна коэффициент 1,2; при обработке алюминия коэффициент 0,8"
+    ])
+    assert warns_multi == []
+    assert len(rules_multi) == 2
+    r_cast = rules_multi.pop(0)
+    r_alum = rules_multi.pop(0)
+    assert r_cast.condition_key == "material_group"
+    assert r_cast.condition_value == "cast_iron"
+    assert r_cast.factor == 1.2
+    assert r_alum.condition_key == "material_group"
+    assert r_alum.condition_value == "aluminum"
+    assert r_alum.factor == 0.8
+
+    for phrase in [
+        "При обработке чугуна коэффициент К=1,2",
+        "При обработке чугуна коэффициент K = 1,2",
+        "При обработке чугуна К=1,2",
+        "При обработке чугуна коэффициент 1,2",
+    ]:
+        r_list, w_list = parse_notes_with_diagnostics([phrase])
+        assert w_list == [], f"Неожиданное предупреждение для '{phrase}': {w_list}"
+        assert len(r_list) == 1
+        item = r_list.pop(0)
+        assert item.modifier_operation == ModifierOperation.MULTIPLY
+        assert item.factor == 1.2
+        assert item.condition_value == "cast_iron"

@@ -164,13 +164,17 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
         cards=cards,
     )
 
+def _is_numeric_axis_cell(text: str) -> bool:
+    """Проверяет, является ли ячейка значением числовой оси (число, интервал или 'св. 2500')."""
+    return bool(re.match(r"^(?:св\.?\s*|до\s*)?[+-]?\d+(?:[.,]\d+)?", text.strip(), flags=re.IGNORECASE))
+
 
 def _split_sheet_sections(rows: List[List[str]]) -> Tuple[List[str], List[List[str]], List[str]]:
     """
     Разделяет лист Excel на три секции:
     1) верхнюю преамбулу (заголовок карты, формула, материал);
-    2) собственно нормативную таблицу (строки с >= 2 непустыми ячейками);
-    3) нижний блок примечаний под таблицей (начинающийся с 'Примечани...' или одиночных строк после таблицы).
+    2) собственно нормативную таблицу (включая строки с заполненной осью и пустыми нормативами);
+    3) нижний блок примечаний под таблицей.
     """
     preamble: List[str] = []
     table_rows: List[List[str]] = []
@@ -183,7 +187,6 @@ def _split_sheet_sections(rows: List[List[str]]) -> Tuple[List[str], List[List[s
         non_empty = [str(c).strip() for c in row if c is not None and str(c).strip()]
         if not non_empty:
             continue
-
         first_cell = non_empty[0]
         is_note_marker = bool(re.match(r"^(?:Примечани[ея]|\d+[\.\)]\s+)", first_cell, flags=re.IGNORECASE))
 
@@ -197,7 +200,7 @@ def _split_sheet_sections(rows: List[List[str]]) -> Tuple[List[str], List[List[s
                 in_footer = True
                 footer_notes.append(" ".join(non_empty))
         elif in_table and not in_footer:
-            if is_note_marker or len(non_empty) == 1:
+            if is_note_marker or (len(non_empty) == 1 and not _is_numeric_axis_cell(first_cell)):
                 in_table = False
                 in_footer = True
                 footer_notes.append(" ".join(non_empty))
