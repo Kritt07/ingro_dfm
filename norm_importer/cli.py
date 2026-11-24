@@ -284,6 +284,12 @@ def process_single_file(
 
     detected_format = _detect_format_via_router(file_path)
 
+    if detected_format in {SourceFormat.PDF_SCANNED, SourceFormat.PDF_HYBRID,
+                            SourceFormat.IMAGE, SourceFormat.TIFF}:
+        from normdoc2json import ocr_document
+        return ocr_document(file_path, lang=ocr_lang,
+                            debug_dir=file_path.parent / (file_path.name + '.debug') if debug_images else None)
+
     return NormDocDocument(
         source_metadata=SourceMetadata(
             source_file=file_path.name,
