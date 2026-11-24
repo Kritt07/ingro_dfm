@@ -1,6 +1,7 @@
 """Stream image/TIFF/PDF pages through OCR, retaining raw evidence."""
 from dataclasses import asdict, dataclass, field
 import json
+import re
 from pathlib import Path
 import logging
 import numpy as np
@@ -102,6 +103,22 @@ def iter_ocr_pages(path, *, lang='rus+eng', engine=None, debug_dir=None,
         yield result
 
 
+def table_header_lines(page, table):
+    """Select spatially preceding text, bounded by previous tables/card titles."""
+    x0,y0,x1,_=table.bbox
+    previous=max((t.bbox[3] for t in page.tables if t is not table
+                  and t.bbox[3]<=y0 and min(x1,t.bbox[2])>max(x0,t.bbox[0])),default=0)
+    lines={}
+    for word in page.blocks:
+        a,b,c,d=word.bbox
+        if previous<=b and d<=y0 and x0<=(a+c)/2<=x1:
+            lines.setdefault(word.line,[]).append(word)
+    ordered=sorted(lines.values(),key=lambda group:min(w.bbox[1] for w in group))
+    text=[' '.join(w.text for w in sorted(group,key=lambda w:w.bbox[0])) for group in ordered]
+    titles=[i for i,line in enumerate(text) if re.search(r'\bКарта\s*(?:№\s*)?\d',line,re.I)]
+    return text[titles[-1]:] if titles else text
+
+
 def ocr_document(path, **kwargs):
     """Build Appendix A JSON model, carrying uncertain cells into diagnostics."""
     from norm_importer.schema import NormDocDocument, NormCard, SourceMetadata, SourceFormat, _parse_and_validate_cell
@@ -136,7 +153,10 @@ def ocr_document(path, **kwargs):
                             row[c]=None
                 grid, notes = map_raw_grid_to_table_grid(raw_grid)
                 warnings.extend(f'Page {page.page_number} table {index}: {n}' for n in notes)
-                header = parse_card_header(text,fallback_stem=Path(path).stem)
+                header_text=table_header_lines(page,table)
+                if not header_text:
+                    warnings.append(f'Page {page.page_number} table {index}: no local header found')
+                header = parse_card_header(header_text,fallback_stem=Path(path).stem)
                 cards.append(NormCard(card_id=f'{header.card_id}_P{page.page_number}_T{index}',
                     card_title=header.card_title,applicability_conditions=header.applicability,
                     calculation_formula=header.calculation_formula,result_unit=header.result_unit,
