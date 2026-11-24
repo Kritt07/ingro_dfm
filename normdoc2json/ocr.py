@@ -67,17 +67,31 @@ def iter_ocr_pages(path, *, lang='rus+eng', engine=None, debug_dir=None,
             result.warnings.extend(prepared.warnings)
             if prepared.image is not None:
                 regions, clean = detect_grid(prepared.image)
-                words = engine.recognize(clean)
-                if regions:
-                    outside=[]
-                    for word in words:
-                        a,b,c,d=word.bbox
-                        if not any(x0<=(a+c)/2<=x1 and y0<=(b+d)/2<=y1
-                                   for (x0,y0,x1,y1),_ in regions):
-                            outside.append(word)
-                    words=outside+recognize_cells(regions,prepared.image,engine)
-                result.tables,result.blocks,notes = reconstruct_tables(regions,words,clean)
-                result.warnings.extend(notes)
+                try:
+                    words = engine.recognize(clean)
+                except Exception as exc:
+                    words = []
+                    result.warnings.append(f'Page text OCR failed: {exc}')
+                outside=[]
+                for word in words:
+                    a,b,c,d=word.bbox
+                    if not any(x0<=(a+c)/2<=x1 and y0<=(b+d)/2<=y1
+                               for (x0,y0,x1,y1),_ in regions):
+                        outside.append(word)
+                result.blocks=outside
+                words=list(outside)
+                for number,region in enumerate(regions,1):
+                    try:
+                        cell_words=recognize_cells([region],prepared.image,engine)
+                        tables,unassigned,notes=reconstruct_tables([region],cell_words,clean)
+                        result.tables.extend(tables)
+                        result.blocks.extend(unassigned)
+                        words.extend(cell_words)
+                        result.warnings.extend(f'Region {number}: {n}' for n in notes)
+                    except Exception as exc:
+                        result.warnings.append(f'Table region {number} {region[0]} failed: {exc}')
+                if not regions:
+                    result.warnings.append('No closed table grid found; review structure')
                 if words:
                     result.confidence = sum(w.confidence for w in words)/len(words)
                 for word in result.blocks:
