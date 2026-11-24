@@ -61,3 +61,14 @@ def test_real_scan_tiff_pdf_json(tmp_path,engine):
     assert NormDocDocument.model_validate_json(output.read_text(encoding='utf-8')).cards[0].table_grid.values_matrix==[[.28,0],[.45,.88]]
     assert list((tmp_path/'scan.png.debug').glob('*.png'))
     print(f'Real OCR: {time.perf_counter()-start:.2f}s for 7 page passes including CLI')
+
+
+def test_negative_value_near_cell_edge(engine):
+    import numpy as np
+    from normdoc2json.ocr_tables import recognize_cells
+    image=Image.new('L',(300,200),255)
+    try: font=ImageFont.truetype('C:/Windows/Fonts/arial.ttf',36)
+    except OSError: font=ImageFont.truetype('DejaVuSans.ttf',36)
+    ImageDraw.Draw(image).text((2,70),'-0,28',font=font,fill=0)
+    words=recognize_cells([((0,0,300,200),[(0,0,300,200)])],np.array(image),engine)
+    assert ''.join(w.text for w in words)=='-0,28'

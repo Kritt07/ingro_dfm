@@ -4,6 +4,17 @@ from normdoc2json.ocr_engine import OCRWord
 from normdoc2json.ocr_tables import detect_grid, reconstruct_tables
 
 
+def test_cell_border_removal_preserves_edge_minus_and_digits():
+    from normdoc2json.ocr_tables import cell_interior
+    image=np.full((200,300),255,np.uint8)
+    cv2.rectangle(image,(0,0),(299,199),0,2)
+    cv2.line(image,(2,90),(12,90),0,2)
+    cv2.putText(image,'0,28',(16,100),0,1,0,2)
+    result=cell_interior(image,(0,0,300,200))
+    assert np.array_equal(result[70:110,2:100],image[70:110,2:100])
+    assert np.all(result[0]==255)
+
+
 def test_merged_header_blank_zero_and_confidence():
     image = np.full((400, 500), 255, np.uint8)
     for y in (50,150,250,350):

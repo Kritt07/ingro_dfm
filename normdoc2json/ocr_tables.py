@@ -105,6 +105,23 @@ def reconstruct_tables(regions, words: list[OCRWord], clean, threshold=.8):
     return tables, outside, warnings
 
 
+def cell_interior(image, box):
+    """Remove long border strokes only; retain symbols near cell edges."""
+    x0,y0,x1,y1=box
+    crop=image[y0:y1,x0:x1].copy()
+    if not crop.size:
+        return crop
+    h,w=crop.shape
+    ink=(crop<128).astype(np.uint8)
+    horizontal=cv2.morphologyEx(ink,cv2.MORPH_OPEN,np.ones((1,max(2,round(w*.7))),np.uint8))
+    vertical=cv2.morphologyEx(ink,cv2.MORPH_OPEN,np.ones((max(2,round(h*.7)),1),np.uint8))
+    band=max(2,round(min(h,w)*.08))
+    horizontal[band:max(band,h-band)]=0
+    vertical[:,band:max(band,w-band)]=0
+    crop[(horizontal|vertical)>0]=255
+    return crop
+
+
 def recognize_cells(regions, image, engine):
     """OCR a packed strip of cell interiors in one engine call, retaining coordinates."""
     patches=[]
@@ -112,8 +129,8 @@ def recognize_cells(regions, image, engine):
     for bbox,cells in regions:
         header_bottom=bbox[1]+2*float(np.median([c[3]-c[1] for c in cells])) if cells else bbox[1]
         for x0,y0,x1,y1 in cells:
-            margin=max(4,round(min(x1-x0,y1-y0)*.08))
-            crop=image[y0+margin:y1-margin,x0+margin:x1-margin]
+            margin=0
+            crop=cell_interior(image,(x0,y0,x1,y1))
             if not crop.size:
                 continue
             if y0 < header_bottom and crop.shape[1]>350 and min(crop.shape)>=7:
