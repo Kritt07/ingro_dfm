@@ -133,3 +133,33 @@ def test_time_units_conversion_and_unknown_unit():
     )
     assert rules_unk == []
     assert len(warns_unk) == 1
+
+def test_spaced_coefficient_and_bilateral_ld_in_notes(tmp_path: Path):
+    """Проверка коэффициента с пробелом ('1, 25'), двустороннего L/D ('3 < L/D <= 10') и работы XLSX с основным экстрактором."""
+    rules_sp, warns_sp = parse_notes_with_diagnostics(["При сверлении глухих отверстий коэффициент 1, 25"])
+    assert warns_sp == []
+    assert len(rules_sp) == 1
+    first_rule = rules_sp.pop(0)
+    assert first_rule.factor == 1.25
+
+    rules_ld, warns_ld = parse_notes_with_diagnostics(["При обработке 3 < L/D <= 10 коэффициент 1,15"])
+    assert len(rules_ld) == 1
+    ld_rule = rules_ld.pop(0)
+    assert ld_rule.condition_key == "l_to_d_custom"
+    assert ld_rule.condition_value == "3<L/D<=10"
+    assert ld_rule.factor == 1.15
+    assert any("3<L/D<=10" in w for w in warns_ld)
+
+    xlsx_path = tmp_path / "primary_path.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Карта 05 Сверление"
+    ws.append(["Диаметр D, мм", 10, 20])
+    ws.append([5, "0,40", "0,55"])
+    wb.save(str(xlsx_path))
+
+    doc = _parse_spreadsheet_file(xlsx_path)
+    assert len(doc.cards) == 1
+    card = doc.cards.pop(0)
+    assert card.card_id == "PRIMARY_PATH_CARD_05"
+    assert card.table_grid.values_matrix == [[0.4, 0.55]]

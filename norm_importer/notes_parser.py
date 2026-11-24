@@ -39,9 +39,14 @@ def clean_ocr_numeric_token(raw_value: str) -> str:
 
     return text
 
-
 def clean_ocr_text_block(text: str) -> str:
-    """Исправляет типичные OCR-искажения в числовых токенах внутри текста примечаний."""
+    """Склеивает пробелы внутри чисел и исправляет OCR-искажения в числовых токенах текста."""
+    collapsed = re.sub(
+        r"(?<=[\dОOоoЗБIl|])\s*([,.;:])\s*(?=[\dОOоoЗБIl|])",
+        ".",
+        text,
+    )
+
     def _fix_token(match: re.Match[str]) -> str:
         token = match.group(0)
         fixed = clean_ocr_numeric_token(token)
@@ -49,18 +54,16 @@ def clean_ocr_text_block(text: str) -> str:
             return fixed
         return token
 
-    # Находим слитные токены с цифрами и разделителями (например, "1,З5", "О,85", "0;Б8")
-    return re.sub(r"\b[\dОOоoЗБIl|]+[,.;:][\dОOоoЗБIl|]+\b", _fix_token, text)
-
+    return re.sub(r"\b[\dОOоoЗБIl|]+\.[\dОOоoЗБIl|]+\b", _fix_token, collapsed)
 
 def _parse_strict_number(raw_token: str) -> Optional[float]:
-    """Проверяет числовой фрагмент целиком; при невосстановимом OCR-искажении возвращает None."""
-    cleaned_token = raw_token.rstrip(".,;:)")
+    """Проверяет числовой фрагмент целиком; при невосстановимом или оборванном токене возвращает None."""
+    # Не отбрасываем запятую на конце, чтобы оборванное "1," не превращалось в 1.0
+    cleaned_token = raw_token.rstrip(".;:)")
     fixed = clean_ocr_numeric_token(cleaned_token)
     if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", fixed):
         return float(fixed)
     return None
-
 
 def _convert_time_to_card_unit(value: float, unit_token: str, result_unit: str) -> Optional[float]:
     """Переводит поправку времени в единицу измерения карты ('min' или 'hour')."""
@@ -80,42 +83,60 @@ def _convert_time_to_card_unit(value: float, unit_token: str, result_unit: str) 
         return round(minutes / 60.0, 6)
     return None
 
-
 def _detect_condition(line: str, fallback_idx: int) -> Tuple[str, bool | str, Optional[str]]:
     """
     Определяет условие срабатывания примечания.
-    Явные числовые ограничения L/D имеют приоритет над общими словесными признаками.
+    Явные одно- и двусторонние числовые ограничения L/D имеют приоритет над словесными признаками.
     """
     lower = line.lower()
 
-    # 1. Явное ограничение L/D или L > k*D (например, "L/D > 5", "L > 5D", "L/D > 3")
-    ld_explicit = re.search(
-        r"\b(?:l\s*/\s*d\s*([<>≤≥]=?)\s*(\d+(?:[.,]\d+)?)|l\s*([<>≤≥]=?)\s*(\d+(?:[.,]\d+)?)\s*d)\b",
+    ld_bilateral = re.search(
+        r"(?:(\d+(?:[.,]\d+)?)\s*([<>≤≥]=?)\s*)?"
+        r"\bl\s*/\s*d\b"
+        r"\s*([<>≤≥]=?)\s*(\d+(?:[.,]\d+)?)",
         lower,
     )
-    if ld_explicit:
-        op = ld_explicit.group(1) or ld_explicit.group(3)
-        num_str = (ld_explicit.group(2) or ld_explicit.group(4)).replace(",", ".")
-        num_val = float(num_str)
-        if op == ">" and num_val == 5.0:
+    if ld_bilateral:
+        left_num, left_op, right_op, right_num = ld_bilateral.groups()
+        r_val = float(right_num.replace(",", "."))
+
+        if not left_num and right_op == ">" and r_val == 5.0:
             return "l_to_d_ratio_gt_5", True, None
-        if op == ">" and num_val == 3.0:
+        if not left_num and right_op == ">" and r_val == 3.0:
             return "l_to_d_ratio_gt_3", True, None
-        # Неподдерживаемое явное ограничение не подменяем ближайшим известным!
-        norm_num = str(int(num_val)) if num_val.is_integer() else str(num_val).replace(".", "_")
+
+        right_part = f"{right_op}{right_num.replace(',', '.')}"
+        if left_num and left_op:
+            left_part = f"{left_num.replace(',', '.')}{left_op}"
+            full_expr = f"{left_part}L/D{right_part}"
+        else:
+            full_expr = f"L/D{right_part}"
+
         return (
-            f"l_to_d_custom_{norm_num}",
-            f"{op}{num_val}",
-            f"Нестандартное ограничение L/D ({op}{num_val}) сохранено как пользовательское условие.",
+            "l_to_d_custom",
+            full_expr,
+            f"Нестандартное ограничение L/D ({full_expr}) сохранено как пользовательское условие.",
         )
 
-    # 2. Общие словесные условия
+    ld_mult = re.search(r"\bl\s*([<>≤≥]=?)\s*(\d+(?:[.,]\d+)?)\s*d\b", lower)
+    if ld_mult:
+        op, num_str = ld_mult.groups()
+        val = float(num_str.replace(",", "."))
+        if op == ">" and val == 5.0:
+            return "l_to_d_ratio_gt_5", True, None
+        if op == ">" and val == 3.0:
+            return "l_to_d_ratio_gt_3", True, None
+        return (
+            "l_to_d_custom",
+            f"L{op}{val}D",
+            f"Нестандартное ограничение L{op}{val}D сохранено как пользовательское условие.",
+        )
+
     for pattern, key, val in TEXT_CONDITION_RULES:
         if re.search(pattern, lower, flags=re.IGNORECASE):
             return key, val, None
 
     return f"custom_condition_{fallback_idx}", True, None
-
 
 def _detect_target_variable(line: str) -> str:
     lower = line.lower()

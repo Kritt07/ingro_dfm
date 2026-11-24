@@ -54,9 +54,8 @@ def _split_sheet_preamble_and_table(rows: List[List[str]]) -> Tuple[List[str], L
 
     return preamble, rows[table_start:]
 
-
 def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
-    """Извлекает таблицы из .xlsx / .csv (через spreadsheets.py Разработчика 1 или openpyxl/csv)."""
+    """Извлекает таблицы из .xlsx / .xls / .csv / .ods через normdoc2json.spreadsheets или fallback."""
     ext = file_path.suffix.lower()
     format_map = {
         ".xlsx": SourceFormat.XLSX,
@@ -71,36 +70,39 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
     extraction_method = "openpyxl_grid_mapper"
 
     try:
-        from normdoc2json.spreadsheets import extract_spreadsheet_tables
-        extracted = extract_spreadsheet_tables(file_path)
+        from normdoc2json.spreadsheets import extract_spreadsheet
+        extracted = extract_spreadsheet(file_path)
         extraction_method = "normdoc2json.spreadsheets"
-        for idx, tbl in enumerate(extracted, start=1):
-            grid = getattr(tbl, "grid", None) or getattr(tbl, "rows", None) or tbl
-            title = getattr(tbl, "title", f"Лист {idx}")
-            if isinstance(grid, list):
-                raw_grids.append((str(title), grid))
+        warnings.extend(getattr(extracted, "warnings", []))
+        for idx, sheet in enumerate(getattr(extracted, "sheets", []), start=1):
+            title = getattr(sheet, "name", f"Лист {idx}")
+            values = getattr(sheet, "values", [])
+            if isinstance(values, list) and values:
+                str_values = [["" if cell is None else str(cell) for cell in row] for row in values]
+                raw_grids.append((str(title), str_values))
     except Exception:
         try:
-           if ext == ".csv":
-               extraction_method = "csv_grid_mapper"
-               text = file_path.read_text(encoding="utf-8-sig")
-               dialect = csv.Sniffer().sniff(text[:1024], delimiters=";,|\t")
-               rows = list(csv.reader(text.splitlines(), dialect))
-               raw_grids.append((file_path.stem, rows))
-           elif ext == ".xlsx":
-               import openpyxl
-               wb = openpyxl.load_workbook(str(file_path), data_only=True)
-               for sheet_name in wb.sheetnames:
-                   ws = wb[sheet_name]
-                   rows = [
-                       ["" if cell is None else str(cell) for cell in row]
-                       for row in ws.iter_rows(values_only=True)
-                   ]
-                   raw_grids.append((sheet_name, rows))
+            if ext == ".csv":
+                extraction_method = "csv_grid_mapper"
+                text = file_path.read_text(encoding="utf-8-sig")
+                dialect = csv.Sniffer().sniff(text[:1024], delimiters=";,|\t")
+                rows = list(csv.reader(text.splitlines(), dialect))
+                raw_grids.append((file_path.stem, rows))
+            elif ext == ".xlsx":
+                import openpyxl
+                wb = openpyxl.load_workbook(str(file_path), data_only=True)
+                for sheet_name in wb.sheetnames:
+                    ws = wb[sheet_name]
+                    rows = [
+                        ["" if cell is None else str(cell) for cell in row]
+                        for row in ws.iter_rows(values_only=True)
+                    ]
+                    raw_grids.append((sheet_name, rows))
         except Exception as exc:
-                requires_manual_review = True
-                warnings.append(f"Ошибка чтения табличного файла {file_path.name}: {exc}")
-        cards: List[NormCard] = []
+            requires_manual_review = True
+            warnings.append(f"Ошибка чтения табличного файла {file_path.name}: {exc}")
+
+    cards: List[NormCard] = []
     for idx, (sheet_title, grid) in enumerate(raw_grids, start=1):
         try:
             preamble_lines, table_rows, footer_notes = _split_sheet_sections(grid)
@@ -162,6 +164,7 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
         cards=cards,
     )
 
+
 def _split_sheet_sections(rows: List[List[str]]) -> Tuple[List[str], List[List[str]], List[str]]:
     """
     Разделяет лист Excel на три секции:
@@ -177,7 +180,7 @@ def _split_sheet_sections(rows: List[List[str]]) -> Tuple[List[str], List[List[s
     in_footer = False
 
     for row in rows:
-        non_empty = [c.strip() for c in row if c and c.strip()]
+        non_empty = [str(c).strip() for c in row if c is not None and str(c).strip()]
         if not non_empty:
             continue
 
