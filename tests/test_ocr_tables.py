@@ -54,3 +54,18 @@ def test_table_inside_nested_page_frames_is_found_once():
     regions,_=detect_grid(image)
     assert len(regions)==1
     assert len(regions[0][1])==4
+
+
+def test_minimal_merged_table():
+    image=np.full((400,400),255,np.uint8)
+    for y in (50,200,350):cv2.line(image,(50,y),(350,y),0,2)
+    for x in (50,200,350):cv2.line(image,(x,200 if x==200 else 50),(x,350),0,2)
+    regions,clean=detect_grid(image)
+    assert len(regions)==1
+    words=[OCRWord('Header',(100,100,200,140),1,(1,1,1)),
+           OCRWord('5',(90,250,110,280),1,(2,1,1)),
+           OCRWord('0,28',(250,250,310,280),1,(3,1,1))]
+    tables,_,warnings=reconstruct_tables(regions,words,clean)
+    assert tables[0].values==[['Header','Header'],['5','0,28']]
+    assert tables[0].merged_ranges==[(1,1,1,2)]
+    assert not warnings

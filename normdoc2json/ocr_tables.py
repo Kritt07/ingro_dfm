@@ -53,8 +53,11 @@ def detect_grid(image):
                     cx, cy, cw, ch = cv2.boundingRect(child)
                     if cw >= 10 and ch >= 10:
                         cells.append((cx, cy, cx+cw, cy+ch))
-            if len(cells) >= 4:
-                regions.append(((x, y, x+w, y+h), cells))
+            if len(cells) >= 3:
+                xs=_anchors([v for c in cells for v in (c[0],c[2])])
+                ys=_anchors([v for c in cells for v in (c[1],c[3])])
+                if len(xs)>=3 and len(ys)>=3:
+                    regions.append(((x, y, x+w, y+h), cells))
     clean = image.copy()
     clean[cv2.dilate(lines,np.ones((3,3),np.uint8)) > 0] = 255
     return sorted(regions, key=lambda r: (r[0][1], r[0][0])), clean
