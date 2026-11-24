@@ -41,9 +41,9 @@ def iter_image_pages(path: str | Path) -> Iterator[ImagePage]:
             try:
                 source.seek(index)
                 raw_dpi = source.info.get('dpi')
-                dpi = None
+                dpi: tuple[float, float] | None = None
                 if raw_dpi and len(raw_dpi) == 2:
-                    values = tuple(float(x) for x in raw_dpi)
+                    values = (float(raw_dpi[0]), float(raw_dpi[1]))
                     if all(math.isfinite(x) and x > 0 for x in values):
                         dpi = values
                 # EXIF поворот на 90 градусов меняет местами оси DPI.

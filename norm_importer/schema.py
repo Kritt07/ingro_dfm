@@ -59,7 +59,6 @@ class ApplicabilityConditions(BaseModel):
 
 CellValue = Union[float, List[float], None]
 
-
 def _parse_and_validate_cell(cell: Any) -> CellValue:
     if cell is None:
         return None
@@ -68,12 +67,14 @@ def _parse_and_validate_cell(cell: Any) -> CellValue:
     if isinstance(cell, list):
         if len(cell) != 2:
             raise ValueError(f"Диапазон в ячейке должен содержать ровно 2 границы, получено {len(cell)}: {cell}")
-        low, high = float(cell[0]), float(cell[1])
+        low = float(cell[0])
+        high = float(cell[1])
         if low > high:
             raise ValueError(f"Обратный порядок границ диапазона: {low} > {high}")
         return [low, high]
     if isinstance(cell, str):
-        cleaned = cell.strip().replace(",", ".")
+        from norm_importer.notes_parser import clean_ocr_numeric_token
+        cleaned = clean_ocr_numeric_token(cell)
         if cleaned in {"", "-", "–", "—", "null", "None"}:
             return None
 
@@ -87,6 +88,7 @@ def _parse_and_validate_cell(cell: Any) -> CellValue:
 
         return float(cleaned)
     raise ValueError(f"Неподдерживаемый тип значения ячейки: {type(cell)}")
+
 
 
 class TableGrid(BaseModel):

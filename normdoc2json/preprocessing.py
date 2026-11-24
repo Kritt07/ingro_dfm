@@ -55,7 +55,7 @@ def _deskew(gray: np.ndarray) -> tuple[np.ndarray, float, list[str]]:
 
 
 def preprocess_page(page: ImagePage, *, target_dpi: int = 300,
-                    max_pixels: int = 40_000_000) -> PreparedPage:
+                    max_pixels: int = 40_000_000, deskew: bool = True) -> PreparedPage:
     """Подготовить страницу. Неизвестный DPI не угадывается.
 
     scale относится к EXIF-ориентированному входу; rotation — угол OpenCV.
@@ -85,7 +85,7 @@ def preprocess_page(page: ImagePage, *, target_dpi: int = 300,
         warnings.append('DPI неизвестен: исходный размер сохранён')
     nw, nh = round(w*sx), round(h*sy)
     # Запас под расширение холста при повороте до 15 градусов.
-    bound = math.ceil(nw + nh * 0.268) * math.ceil(nh + nw * 0.268)
+    bound = math.ceil(nw + nh * 0.268) * math.ceil(nh + nw * 0.268) if deskew else nw*nh
     if bound > max_pixels:
         warnings.append('Превышен лимит пикселей с учётом поворота; страница пропущена')
         return result
@@ -93,8 +93,9 @@ def preprocess_page(page: ImagePage, *, target_dpi: int = 300,
     if (nw, nh) != (w, h):
         gray = cv2.resize(gray, (nw, nh), interpolation=cv2.INTER_CUBIC)
     result.scale = (nw/w, nh/h)
-    gray, result.rotation_degrees, notes = _deskew(gray)
-    warnings.extend(notes)
+    if deskew:
+        gray, result.rotation_degrees, notes = _deskew(gray)
+        warnings.extend(notes)
     # Мягкая фильтрация сохраняет границы и мелкие знаки; морфологическое
     # раскрытие не применяется, поскольку оно может уничтожать запятые.
     clean = cv2.bilateralFilter(gray, 5, 20, 20)

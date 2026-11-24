@@ -12,6 +12,8 @@ from docx import Document
 from docx.table import Table
 from norm_importer.grid_mapper import map_raw_grid_to_table_grid
 from norm_importer.header_parser import parse_card_header
+from norm_importer.notes_parser import parse_notes_to_rules
+from norm_importer.notes_parser import parse_notes_with_diagnostics
 
 from norm_importer.schema import (
     ApplicabilityConditions,
@@ -241,10 +243,11 @@ def parse_office_file(file_path: Path) -> NormDocDocument:
     ]
     parsed_header = parse_card_header(header_lines, fallback_stem=file_path.stem)
     _, _, _, notes = _extract_metadata_from_paragraphs(paragraphs, file_path.name)
-    rules = _parse_notes_to_rules(notes)
+    rules, note_warnings = parse_notes_with_diagnostics(notes, result_unit=parsed_header.result_unit)
+    warnings.extend(note_warnings)
+    if note_warnings:
+        requires_manual_review = True
     
-    card_title, operation_type, formula, notes = _extract_metadata_from_paragraphs(paragraphs, file_path.name)
-    rules = _parse_notes_to_rules(notes)
 
     cards: List[NormCard] = []
     for idx, grid in enumerate(raw_tables, start=1):
@@ -265,16 +268,16 @@ def parse_office_file(file_path: Path) -> NormDocDocument:
         except Exception as exc:
             requires_manual_review = True
             warnings.append(f"Таблица {idx} пропущена из-за ошибки структуры: {exc}")
-
     if not cards:
         requires_manual_review = True
         warnings.append("В документе не обнаружены валидные нормативные таблицы; создана пустая карточка-заглушка.")
         cards.append(
             NormCard(
                 card_id=f"{file_path.stem.upper()}_EMPTY_01",
-                card_title=card_title,
-                applicability_conditions=ApplicabilityConditions(operation_type=operation_type),
-                calculation_formula=formula,
+                card_title=parsed_header.card_title,
+                applicability_conditions=parsed_header.applicability,
+                calculation_formula=parsed_header.calculation_formula,
+                result_unit=parsed_header.result_unit,
                 table_grid=TableGrid(
                     row_param_name="unknown",
                     rows_range=["stub"],
