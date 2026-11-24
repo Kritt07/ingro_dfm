@@ -127,7 +127,33 @@ def cell_interior(image, box):
     band=max(2,round(min(h,w)*.08))
     horizontal[band:max(band,h-band)]=0
     vertical[:,band:max(band,w-band)]=0
-    crop[(horizontal|vertical)>0]=255
+    mask=horizontal|vertical
+    # Start with the proven inner area, then restore complete compact glyphs
+    # from the edge band. Long connected grid strokes remain excluded.
+    count,labels,stats,_=cv2.connectedComponentsWithStats(ink)
+    keep=np.zeros_like(crop,dtype=bool)
+    keep[band:h-band,band:w-band]=True
+    core=ink[band:h-band,band:w-band]
+    points=np.argwhere(core)
+    if points.size:
+        top=int(points[:,0].min())+band
+        bottom=int(points[:,0].max())+band+1
+        for label in range(1,count):
+            x,y,cw,ch,area=stats[label]
+            if cw<.5*w and ch<.5*h and y+ch>=top and y<=bottom:
+                keep[labels==label]=True
+        core_left=int(points[:,1].min())+band
+        core_right=int(points[:,1].max())+band
+        if core_left<=2*band or core_right>=w-2*band:
+            detached=ink.copy()
+            detached[mask>0]=0
+            count,labels,stats,_=cv2.connectedComponentsWithStats(detached)
+            for label in range(1,count):
+                x,y,cw,ch,area=stats[label]
+                if cw<.2*w and ch<.5*h and y+ch>=top and y<=bottom:
+                    keep[labels==label]=True
+    crop[~keep]=255
+
     return crop
 
 
