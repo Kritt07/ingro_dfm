@@ -1,0 +1,6 @@
+*.pdf
+*.ods
+*.log
+pytest.txt
+photo_json/
+router_json/

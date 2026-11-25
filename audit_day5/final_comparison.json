@@ -1,0 +1,782 @@
+[
+  {
+    "file": "card01_straight_jpg.json",
+    "matrix_matches": true,
+    "grid": {
+      "row_param_name": "row_param",
+      "row_condition": "up_to",
+      "col_param_name": "length_l_mm",
+      "col_condition": "up_to",
+      "rows_range": [
+        2.0,
+        3.0,
+        5.0,
+        8.0,
+        10.0,
+        12.0,
+        16.0,
+        20.0
+      ],
+      "cols_range": [
+        10.0,
+        20.0,
+        30.0,
+        50.0
+      ],
+      "values_matrix": [
+        [
+          0.12,
+          0.24,
+          null,
+          null
+        ],
+        [
+          0.15,
+          0.28,
+          0.41,
+          null
+        ],
+        [
+          0.18,
+          0.31,
+          0.45,
+          0.68
+        ],
+        [
+          0.22,
+          0.36,
+          0.52,
+          0.79
+        ],
+        [
+          0.25,
+          0.42,
+          0.61,
+          0.93
+        ],
+        [
+          0.29,
+          0.48,
+          0.7,
+          1.08
+        ],
+        [
+          0.35,
+          0.58,
+          0.84,
+          1.27
+        ],
+        [
+          0.43,
+          0.71,
+          1.02,
+          1.56
+        ]
+      ]
+    },
+    "rules": 0,
+    "warnings": [
+      "Page 1: Perspective corrected from table border; verify geometry",
+      "Page 1: Region 1: Table 1 R2C5: unreadable ink, stored null",
+      "Page 1: Region 1: Table 1 R1C2: low confidence 0.76: L до 10 мм",
+      "Page 1: Low confidence text at (51, 126, 64, 127): .",
+      "Page 1: Low confidence text at (184, 118, 324, 136): И",
+      "Page 1: Low confidence text at (2664, 47, 3362, 76): о",
+      "Page 1: Low confidence text at (3956, 34, 3967, 111): |",
+      "Page 1: Low confidence text at (66, 119, 294, 171): —",
+      "Page 1: Low confidence text at (3952, 116, 3969, 187): L",
+      "Page 1: Low confidence text at (54, 461, 148, 524): cao",
+      "Page 1: Low confidence text at (283, 463, 292, 521): |",
+      "Page 1: Low confidence text at (769, 467, 1156, 515): NormDoc2JSON",
+      "Page 1: Low confidence text at (4123, 496, 4157, 500): 7",
+      "Page 1: Low confidence text at (79, 616, 240, 698): an",
+      "Page 1: Low confidence text at (71, 779, 107, 854): -",
+      "Page 1: Low confidence text at (124, 764, 172, 866): С:",
+      "Page 1: Low confidence text at (766, 811, 980, 854): Учебные",
+      "Page 1: Low confidence text at (95, 1001, 232, 1037): Soe,",
+      "Page 1: Low confidence text at (269, 961, 298, 1085): |",
+      "Page 1: Low confidence text at (102, 1075, 250, 1143): о",
+      "Page 1: Low confidence text at (763, 1072, 868, 1121): Т1Ы",
+      "Page 1: Low confidence text at (3923, 1092, 3931, 1162): |",
+      "Page 1: Low confidence text at (168, 1481, 172, 1484): |",
+      "Page 1: Low confidence text at (147, 1644, 303, 1723): 4]",
+      "Page 1: Low confidence text at (3927, 1648, 3936, 1715): :",
+      "Page 1: Low confidence text at (291, 1727, 302, 1767): Я",
+      "Page 1: Low confidence text at (3926, 1736, 3937, 1764): t",
+      "Page 1: Low confidence text at (150, 1811, 300, 1919): |",
+      "Page 1: Low confidence text at (3923, 1919, 3937, 1991): Го",
+      "Page 1: Low confidence text at (279, 1997, 294, 2095): |",
+      "Page 1: Low confidence text at (274, 2100, 286, 2274): |",
+      "Page 1: Low confidence text at (713, 2142, 714, 2234): |",
+      "Page 1: Low confidence text at (3927, 2326, 3938, 2394): |",
+      "Page 1: Low confidence text at (204, 2501, 255, 2510): -",
+      "Page 1: Low confidence text at (3927, 2500, 3943, 2567): '",
+      "Page 1: Low confidence text at (3930, 2587, 3941, 2627): |",
+      "Page 1: Low confidence text at (294, 2679, 300, 2758): |",
+      "Page 1: Low confidence text at (3930, 2645, 3940, 2736): |",
+      "Page 1: Low confidence text at (3925, 2981, 3973, 3018): |.",
+      "Page 1: Low confidence text at (265, 3142, 304, 3226): -",
+      "Page 1: Low confidence text at (319, 3548, 331, 3575): }",
+      "Page 1: Low confidence text at (3900, 3547, 3911, 3590): }",
+      "Page 1: Low confidence text at (3897, 3591, 3906, 3631): |",
+      "Page 1 table 1: surrounding text requires semantic review (notes parser handoff): . И — о | | — L | cao | NormDoc2JSON * Тест распознавания 7 | an | Карта 01. Сверление отверстий | - С: | | Учебные значения для проверки OCR, Для производственных расчётов но применять. | | Soe, | Условия применимости — сталь 45, сверло P6M5, сквозное отверстие. Табличное время | | о Т1Ы дано в минутах. Значения О и L задают верхние границы интервалов включительно. | | | | | | | | 4] : | Я t | | | | Го | | | | | | | | | | - | ' | | | | | | | Примечания | |. | 1. Прочерк обозначает отсутствие табличного значения. | | - 2. Для глухого отверстия умножить Ttbl на коэффициент 1,2. | | 3. При L > 3D дополнительно применить коэффициент 1,3. | | | } } | | | | | | | | Учебная карта для тестирования OCR 1/3 |"
+    ]
+  },
+  {
+    "file": "card01_tilted_jpg.json",
+    "matrix_matches": true,
+    "grid": {
+      "row_param_name": "row_param",
+      "row_condition": "up_to",
+      "col_param_name": "length_l_mm",
+      "col_condition": "up_to",
+      "rows_range": [
+        2.0,
+        3.0,
+        5.0,
+        8.0,
+        10.0,
+        12.0,
+        16.0,
+        20.0
+      ],
+      "cols_range": [
+        "Е до 10 мм",
+        "L до 20 мм",
+        "col_3",
+        "L до 50 мм"
+      ],
+      "values_matrix": [
+        [
+          0.12,
+          0.24,
+          null,
+          null
+        ],
+        [
+          0.15,
+          0.28,
+          0.41,
+          null
+        ],
+        [
+          0.18,
+          0.31,
+          0.45,
+          0.68
+        ],
+        [
+          0.22,
+          0.36,
+          0.52,
+          0.79
+        ],
+        [
+          0.25,
+          0.42,
+          0.61,
+          0.93
+        ],
+        [
+          0.29,
+          0.48,
+          0.7,
+          1.08
+        ],
+        [
+          0.35,
+          0.58,
+          0.84,
+          1.27
+        ],
+        [
+          0.43,
+          0.71,
+          1.02,
+          1.56
+        ]
+      ]
+    },
+    "rules": 0,
+    "warnings": [
+      "Page 1: Perspective corrected from table border; verify geometry",
+      "Page 1: Region 1: Table 1 R3C5: unreadable ink, stored null",
+      "Page 1: Region 1: Table 1 R2C5: unreadable ink, stored null",
+      "Page 1: Region 1: Table 1 R2C4: unreadable ink, stored null",
+      "Page 1: Region 1: Table 1 R1C1: low confidence 0.07: Деаметр О. мм, до",
+      "Page 1: Region 1: Table 1 R1C2: low confidence 0.39: Е до 10 мм",
+      "Page 1: Region 1: Table 1: missing cell borders; review structure",
+      "Page 1: Low confidence text at (908, 0, 1149, 722): |",
+      "Page 1: Low confidence text at (4360, 973, 4571, 1198): \\",
+      "Page 1: Low confidence text at (2724, 1110, 2756, 1127): w",
+      "Page 1: Low confidence text at (4867, 1093, 4895, 1123): ‘\\",
+      "Page 1: Low confidence text at (1150, 1324, 1350, 1363): Учебчые",
+      "Page 1: Low confidence text at (1908, 1310, 2025, 1351): OCR.",
+      "Page 1: Low confidence text at (2145, 1315, 2575, 1356): производственных",
+      "Page 1: Low confidence text at (2589, 1313, 2796, 1353): расч8тов",
+      "Page 1: Low confidence text at (4571, 1200, 4841, 1493): \\",
+      "Page 1: Low confidence text at (1149, 1570, 1247, 1616): МЫ",
+      "Page 1: Low confidence text at (2118, 1560, 2148, 1609): Ц",
+      "Page 1: Low confidence text at (4841, 1494, 4976, 1639): <",
+      "Page 1: Low confidence text at (3790, 2466, 3791, 2495): |",
+      "Page 1: Low confidence text at (4118, 2409, 4124, 2502): :",
+      "Page 1: Low confidence text at (4452, 2906, 4454, 2908): |",
+      "Page 1: Low confidence text at (4123, 2976, 4132, 3013): |",
+      "Page 1: Low confidence text at (4122, 3023, 4133, 3062): |",
+      "Page 1: Low confidence text at (4188, 3330, 4192, 3332): |",
+      "Page 1: Low confidence text at (355, 3413, 531, 3478): Te",
+      "Page 1: Low confidence text at (475, 3543, 619, 3604): о.",
+      "Page 1: Low confidence text at (2155, 3539, 2253, 3584): ТЫ!",
+      "Page 1: Low confidence text at (490, 3670, 590, 3695): о",
+      "Page 1: Low confidence text at (733, 3640, 749, 3776): |",
+      "Page 1: Low confidence text at (598, 3965, 754, 4010): |",
+      "Page 1: Low confidence text at (399, 4941, 540, 5000): о",
+      "Page 1: Low confidence text at (682, 4955, 739, 5001): _",
+      "Page 1: Low confidence text at (764, 4727, 787, 5157): !",
+      "Page 1: Low confidence text at (3675, 4946, 3690, 4983): 1",
+      "Page 1: Low confidence text at (3709, 4907, 3753, 5001): Г’",
+      "Page 1 table 1: Часть заголовков столбцов не является числами; сохранены строковые метки.",
+      "Page 1 table 1: surrounding text requires semantic review (notes parser handoff): | | NormDoc2JSON * Тест распознавания | \\ | w ‘\\ | Карта 01. Сверление отверстий | | Учебчые значения для проверки OCR. Для производственных расч8тов не применять, | \\ | Условия применимости — сталь 45, сверло PGMS, сквозное отверстие. Табличное время | МЫ дано в минутах. Значения О и Ц задают верхние границы интервалов включительно. < | | | | | | | | | | | | : | | | | | | | | | | | | | .. Примечания | | | Te 1. Прочерк обозначает отсутствие табличного значения. | о. 2. Для глухого отверстия умножить ТЫ! на коэффициент 1.2. | о | 3. При L > 3D дополнительно применить коэффициент 1,3. | | | | | о _ ! Учебная карта для тестирования OCR 1 Г’"
+    ]
+  },
+  {
+    "file": "card02_straight_jpg.json",
+    "matrix_matches": true,
+    "grid": {
+      "row_param_name": "width_b_mm",
+      "row_condition": "up_to",
+      "col_param_name": "col_param",
+      "col_condition": "up_to",
+      "rows_range": [
+        3.0,
+        4.0,
+        6.0,
+        8.0,
+        10.0,
+        12.0,
+        16.0
+      ],
+      "cols_range": [
+        6.0,
+        20.0,
+        320.0,
+        20.0
+      ],
+      "values_matrix": [
+        [
+          0.22,
+          0.37,
+          0.31,
+          0.49
+        ],
+        [
+          0.25,
+          0.42,
+          0.35,
+          0.55
+        ],
+        [
+          0.31,
+          0.51,
+          0.43,
+          0.68
+        ],
+        [
+          0.38,
+          0.63,
+          0.52,
+          0.82
+        ],
+        [
+          0.46,
+          0.76,
+          0.64,
+          1.01
+        ],
+        [
+          0.55,
+          0.91,
+          0.77,
+          1.21
+        ],
+        [
+          0.72,
+          1.19,
+          1.0,
+          1.58
+        ]
+      ]
+    },
+    "rules": 0,
+    "warnings": [
+      "Page 1: Perspective corrected from table border; verify geometry",
+      "Page 1: Region 1: Table 1 R2C3: low confidence 0.33: 20 <(5 40 мм",
+      "Page 1: Region 1: Table 1 R2C5: low confidence 0.00: 20 <1540 мм",
+      "Page 1: Region 1: Table 1 R2C4: low confidence 0.30: L320 мм_",
+      "Page 1: Region 1: Table 1 R2C2: low confidence 0.47: _ 6$ 20 мм",
+      "Page 1: Region 1: Table 1 R1C4: low confidence 0.00: - _ Закрытый паз",
+      "Page 1: Region 1: Table 1 R1C2: low confidence 0.00: —_ “Открытый na3 |",
+      "Page 1: Low confidence text at (27, 486, 61, 574): й",
+      "Page 1: Low confidence text at (89, 496, 127, 557): ..",
+      "Page 1: Low confidence text at (25, 642, 157, 763): |",
+      "Page 1: Low confidence text at (40, 851, 61, 912): |",
+      "Page 1: Low confidence text at (152, 848, 166, 955): |",
+      "Page 1: Low confidence text at (3844, 847, 3855, 917): |",
+      "Page 1: Low confidence text at (4102, 1098, 4105, 1111): |",
+      "Page 1: Low confidence text at (49, 1131, 96, 1208): 7",
+      "Page 1: Low confidence text at (3846, 1165, 3859, 1251): |",
+      "Page 1: Low confidence text at (4034, 1128, 4105, 1216): |",
+      "Page 1: Low confidence text at (57, 1367, 167, 1440): |",
+      "Page 1: Low confidence text at (69, 1740, 168, 1867): 1",
+      "Page 1: Low confidence text at (4075, 1750, 4077, 1755): |",
+      "Page 1: Low confidence text at (75, 1933, 162, 2032): -",
+      "Page 1: Low confidence text at (3851, 1872, 3864, 2085): |",
+      "Page 1: Low confidence text at (4064, 1934, 4071, 1971): !",
+      "Page 1: Low confidence text at (77, 2030, 161, 2068): 4",
+      "Page 1: Low confidence text at (80, 2071, 159, 2121): `}",
+      "Page 1: Low confidence text at (81, 2125, 157, 2218): и",
+      "Page 1: Low confidence text at (3961, 2138, 3976, 2198): 7",
+      "Page 1: Low confidence text at (85, 2219, 153, 2257): |",
+      "Page 1: Low confidence text at (3853, 2299, 3866, 2319): b",
+      "Page 1: Low confidence text at (3919, 2275, 3939, 2278): =",
+      "Page 1: Low confidence text at (88, 2339, 92, 2384): !",
+      "Page 1: Low confidence text at (92, 2470, 97, 2545): !",
+      "Page 1: Low confidence text at (149, 2496, 158, 2606): |",
+      "Page 1: Low confidence text at (4044, 2495, 4047, 2541): |",
+      "Page 1: Low confidence text at (98, 2653, 103, 2730): :",
+      "Page 1: Low confidence text at (110, 3038, 115, 3119): |",
+      "Page 1: Low confidence text at (3906, 3083, 3951, 3099): -",
+      "Page 1: Low confidence text at (3983, 3104, 4022, 3120): ;",
+      "Page 1: Low confidence text at (4009, 3125, 4023, 3341): |",
+      "Page 1: Low confidence text at (3888, 3358, 3971, 3440): о",
+      "Page 1: Low confidence text at (172, 4937, 176, 4978): .",
+      "Page 1: Low confidence text at (1091, 4924, 1421, 4967): тестирования",
+      "Page 1: Low confidence text at (3816, 4896, 3924, 4967): Е",
+      "Page 1: Low confidence text at (174, 5019, 590, 5209): Г",
+      "Page 1: Low confidence text at (1203, 5211, 1371, 5215): ОНИ",
+      "Page 1: Low confidence text at (1460, 5206, 1471, 5208): -",
+      "Page 1: Low confidence text at (1507, 5202, 1538, 5203): —",
+      "Page 1: Low confidence text at (1984, 5205, 2392, 5226): >",
+      "Page 1: Low confidence text at (2574, 5205, 2685, 5232): -—-",
+      "Page 1: Low confidence text at (2871, 5202, 3136, 5231): п",
+      "Page 1: Low confidence text at (3302, 5201, 3689, 5227):  e",
+      "Page 1: Low confidence text at (3706, 5177, 3827, 5223): Ши",
+      "Page 1: Low confidence text at (3914, 5151, 3935, 5222): |",
+      "Page 1 table 1: surrounding text requires semantic review (notes parser handoff): й .. NormDoc2JSON * Тест распознавания | | | Карта 02. Фрезерование пазов | | | Учебные значения для проверки ОСК. Для производственных расчётов не применять. | | | | Условия применимости — алюминиевый сплав, концевая фреза, глубина паза до 5 мм. В | | | 7 | таблице приведено Ttbl, мин. Ширина В задаёт верхнюю границу интервала включительно. | | | | | | 1 | | - | ! | 4 | `} | и 7 | | | | b = | ! | | ! | | | | : | | | | | | Примечания - ; | 1. При глубине свыше 5 до 10 мм умножить время Ha 1,4. | | | 2. Для двух одинаковых пазов рассчитать время каждого паза отдельно. о | | . | Учебная карта для тестирования ОСВ 213 Е | Г ОНИ - — — > -—- . п  e Ши |"
+    ]
+  },
+  {
+    "file": "card02_tilted_jpg.json",
+    "matrix_matches": true,
+    "grid": {
+      "row_param_name": "width_b_mm",
+      "row_condition": "up_to",
+      "col_param_name": "col_param",
+      "col_condition": "up_to",
+      "rows_range": [
+        3.0,
+        4.0,
+        6.0,
+        8.0,
+        10.0,
+        12.0,
+        16.0
+      ],
+      "cols_range": [
+        20.0,
+        20.0,
+        20.0,
+        20.0
+      ],
+      "values_matrix": [
+        [
+          0.22,
+          0.37,
+          0.31,
+          0.49
+        ],
+        [
+          0.25,
+          0.42,
+          0.35,
+          0.55
+        ],
+        [
+          0.31,
+          0.51,
+          0.43,
+          0.68
+        ],
+        [
+          0.38,
+          0.63,
+          0.52,
+          0.82
+        ],
+        [
+          0.46,
+          0.76,
+          0.64,
+          1.01
+        ],
+        [
+          0.55,
+          0.91,
+          0.77,
+          1.21
+        ],
+        [
+          0.72,
+          1.19,
+          1.0,
+          1.58
+        ]
+      ]
+    },
+    "rules": 0,
+    "warnings": [
+      "Page 1: Perspective corrected from table border; verify geometry",
+      "Page 1: Region 1: Table 1 R2C4: low confidence 0.49: Е $ 20 мм",
+      "Page 1: Region 1: Table 1 R2C3: low confidence 0.60: 20 <Е $5 40 мм",
+      "Page 1: Region 1: Table 1 R2C5: low confidence 0.00: 20<( $40 мм",
+      "Page 1: Region 1: Table 1 R2C2: low confidence 0.38: Ls 20 мм",
+      "Page 1: Region 1: Table 1 R1C1: low confidence 0.46: Ширина 6, мм, дэ",
+      "Page 1: Region 1: Table 1 R1C2: low confidence 0.73: Открытый паз",
+      "Page 1: Low confidence text at (1010, 798, 1553, 828): о",
+      "Page 1: Low confidence text at (2044, 776, 3549, 803): Ытмттштыкы—————ы—=—95—595",
+      "Page 1: Low confidence text at (3532, 765, 3903, 933): |",
+      "Page 1: Low confidence text at (3889, 998, 3900, 1061): |",
+      "Page 1: Low confidence text at (4343, 975, 4421, 1098): м",
+      "Page 1: Low confidence text at (977, 1165, 1332, 1211): NormDoc2JSON",
+      "Page 1: Low confidence text at (1493, 1161, 1827, 1207): распознавания",
+      "Page 1: Low confidence text at (4447, 1141, 4502, 1224): м",
+      "Page 1: Low confidence text at (4511, 1241, 4550, 1299): к",
+      "Page 1: Low confidence text at (973, 1489, 1171, 1527): Учебные",
+      "Page 1: Low confidence text at (1503, 1489, 1705, 1530): проверки",
+      "Page 1: Low confidence text at (2395, 1484, 2599, 1524): расчётов",
+      "Page 1: Low confidence text at (4650, 1463, 4695, 1527): N",
+      "Page 1: Low confidence text at (3888, 1612, 3897, 1669): |",
+      "Page 1: Low confidence text at (1712, 1644, 2098, 1692): алюминиевый",
+      "Page 1: Low confidence text at (3888, 1676, 3899, 1720): й",
+      "Page 1: Low confidence text at (4772, 1655, 4808, 1709): м",
+      "Page 1: Low confidence text at (1219, 1743, 1509, 1789): призедсно",
+      "Page 1: Low confidence text at (3889, 1721, 3902, 1785): }",
+      "Page 1: Low confidence text at (4810, 1715, 4860, 1789): \\.",
+      "Page 1: Low confidence text at (3892, 1965, 3902, 2016): {",
+      "Page 1: Low confidence text at (3893, 2021, 3906, 2082): :",
+      "Page 1: Low confidence text at (550, 2496, 559, 2524): |",
+      "Page 1: Low confidence text at (546, 2619, 556, 2672): |",
+      "Page 1: Low confidence text at (546, 2673, 555, 2699): (",
+      "Page 1: Low confidence text at (3899, 2675, 3907, 2698): {",
+      "Page 1: Low confidence text at (545, 2850, 550, 2882): ‘",
+      "Page 1: Low confidence text at (3900, 2866, 3909, 2899): t",
+      "Page 1: Low confidence text at (3901, 3096, 3915, 3144): }",
+      "Page 1: Low confidence text at (416, 3265, 489, 3313): —",
+      "Page 1: Low confidence text at (387, 3439, 496, 3496): nt",
+      "Page 1: Low confidence text at (334, 3580, 360, 3625): _",
+      "Page 1: Low confidence text at (355, 3714, 391, 3766): 7",
+      "Page 1: Low confidence text at (277, 3818, 286, 3843): |",
+      "Page 1: Low confidence text at (485, 4884, 489, 4887): .",
+      "Page 1: Low confidence text at (508, 4895, 542, 4913): A",
+      "Page 1: Low confidence text at (587, 4855, 591, 4858): .",
+      "Page 1: Low confidence text at (3847, 4852, 3873, 4918): й",
+      "Page 1: Low confidence text at (522, 5107, 609, 5145): a",
+      "Page 1 table 1: surrounding text requires semantic review (notes parser handoff): о Ытмттштыкы—————ы—=—95—595 | | \\ | | м | NormDoc2JSON * Тест распознавания м | к | Карта 02. Фрезерование пазов \\ | \\ | Учебные значения для проверки OCR, Для производственных расчётов не применять. N | | \\ | Условия применимости — алюминиевый сплав, концевая фреза, глубина паза до 5 мм. В й м | таблице призедсно Ttbl, мин. Ширина В задаёт верхнюю границу интервала включительно. } \\. | { | : | | | | | | | | | | ( { | } | | | | ‘ t | } | — | nt | Примечания | | _ | 1. При глубине свыше 5 до 10 мм умножить время на 1,4. | | 7 | 2. Для двух одинаковых пазов рассчитать время каждого паза отдельно. | | | | | | . A . й | a Учебная карта для тестирования OCR 2/3 /"
+    ]
+  },
+  {
+    "file": "card03_straight_jpg.json",
+    "matrix_matches": true,
+    "grid": {
+      "row_param_name": "row_param",
+      "row_condition": "up_to",
+      "col_param_name": "length_l_mm",
+      "col_condition": "up_to",
+      "rows_range": [
+        6.0,
+        8.0,
+        10.0,
+        12.0,
+        16.0,
+        20.0,
+        25.0,
+        32.0
+      ],
+      "cols_range": [
+        10.0,
+        20.0,
+        30.0,
+        40.0,
+        60.0
+      ],
+      "values_matrix": [
+        [
+          0.2,
+          0.28,
+          0.36,
+          null,
+          null
+        ],
+        [
+          0.24,
+          0.33,
+          0.43,
+          0.56,
+          null
+        ],
+        [
+          0.29,
+          0.4,
+          0.52,
+          0.67,
+          0.91
+        ],
+        [
+          0.35,
+          0.48,
+          0.63,
+          0.81,
+          1.1
+        ],
+        [
+          0.43,
+          0.59,
+          0.77,
+          0.99,
+          1.35
+        ],
+        [
+          0.52,
+          0.72,
+          0.94,
+          1.21,
+          1.65
+        ],
+        [
+          0.64,
+          0.88,
+          1.15,
+          1.48,
+          2.02
+        ],
+        [
+          0.79,
+          1.09,
+          1.42,
+          1.83,
+          2.49
+        ]
+      ]
+    },
+    "rules": 0,
+    "warnings": [
+      "Page 1: Perspective corrected from table border; verify geometry",
+      "Page 1: Region 1: Table 1 R3C6: unreadable ink, stored null",
+      "Page 1: Region 1: Table 1 R2C6: unreadable ink, stored null",
+      "Page 1: Region 1: Table 1 R2C5: low confidence 0.45: >",
+      "Page 1: Region 1: Table 1 R1C2: low confidence 0.04: К до 10",
+      "Page 1: Region 1: Table 1 R1C4: low confidence 0.77: | L до 30 |",
+      "Page 1: Region 1: Table 1 R1C3: low confidence 0.00: Lp 20 |",
+      "Page 1: Low confidence text at (93, 412, 128, 475): *",
+      "Page 1: Low confidence text at (1120, 436, 1135, 452): +",
+      "Page 1: Low confidence text at (3948, 431, 3951, 494): |",
+      "Page 1: Low confidence text at (4111, 463, 4118, 466): |",
+      "Page 1: Low confidence text at (42, 589, 237, 680): |",
+      "Page 1: Low confidence text at (3947, 585, 4149, 667): В",
+      "Page 1: Low confidence text at (40, 764, 109, 803): -",
+      "Page 1: Low confidence text at (181, 834, 188, 837): .",
+      "Page 1: Low confidence text at (4142, 758, 4145, 834): |",
+      "Page 1: Low confidence text at (53, 955, 237, 1038): |",
+      "Page 1: Low confidence text at (2486, 974, 2813, 1023): единичнове",
+      "Page 1: Low confidence text at (62, 1056, 178, 1066): о",
+      "Page 1: Low confidence text at (226, 1029, 236, 1138): |",
+      "Page 1: Low confidence text at (1713, 1060, 1821, 1114): IT9,",
+      "Page 1: Low confidence text at (2135, 1056, 2231, 1111): OD",
+      "Page 1: Low confidence text at (49, 1158, 147, 1184): р",
+      "Page 1: Low confidence text at (226, 1139, 236, 1227): |",
+      "Page 1: Low confidence text at (118, 1229, 236, 1323): 1",
+      "Page 1: Low confidence text at (3878, 1247, 3962, 1319): ро",
+      "Page 1: Low confidence text at (4124, 1347, 4128, 1422): |",
+      "Page 1: Low confidence text at (827, 1507, 991, 1584): (ТЫ",
+      "Page 1: Low confidence text at (3962, 1913, 4113, 2013): р.",
+      "Page 1: Low confidence text at (213, 2007, 225, 2030): ?",
+      "Page 1: Low confidence text at (121, 2042, 224, 2111): 4",
+      "Page 1: Low confidence text at (3963, 2023, 3981, 2051): Го",
+      "Page 1: Low confidence text at (4056, 2118, 4109, 2178): -",
+      "Page 1: Low confidence text at (3964, 2300, 4042, 2367): bo",
+      "Page 1: Low confidence text at (4098, 2303, 4104, 2355): |",
+      "Page 1: Low confidence text at (212, 2445, 223, 2478): 4",
+      "Page 1: Low confidence text at (120, 2486, 227, 2548): -",
+      "Page 1: Low confidence text at (4095, 2495, 4099, 2554): :",
+      "Page 1: Low confidence text at (218, 2673, 230, 2734): :",
+      "Page 1: Low confidence text at (223, 2744, 231, 2771): {",
+      "Page 1: Low confidence text at (3973, 2734, 4092, 2774): |",
+      "Page 1: Low confidence text at (4085, 2920, 4087, 2967): :",
+      "Page 1: Low confidence text at (3977, 2970, 3993, 3099): |",
+      "Page 1: Low confidence text at (4079, 3002, 4084, 3086): |",
+      "Page 1: Low confidence text at (145, 3106, 150, 3115): ь",
+      "Page 1: Low confidence text at (3978, 3103, 3986, 3116): ‹",
+      "Page 1: Low confidence text at (4078, 3088, 4084, 3114): 4",
+      "Page 1: Low confidence text at (196, 3190, 244, 3274): y",
+      "Page 1: Low confidence text at (154, 3280, 244, 3306): |",
+      "Page 1: Low confidence text at (162, 3456, 165, 3508): |",
+      "Page 1: Low confidence text at (166, 3539, 254, 3574): 4",
+      "Page 1: Low confidence text at (242, 3579, 257, 3662): ]",
+      "Page 1: Low confidence text at (3316, 3646, 3324, 3655): ,",
+      "Page 1: Low confidence text at (4020, 3621, 4068, 3654): |",
+      "Page 1: Low confidence text at (170, 3663, 174, 3709): i",
+      "Page 1: Low confidence text at (3963, 3665, 3976, 3713): a",
+      "Page 1: Low confidence text at (216, 3718, 258, 3767): 1",
+      "Page 1: Low confidence text at (4009, 3718, 4066, 3791): =",
+      "Page 1: Low confidence text at (912, 3892, 984, 3944): |.",
+      "Page 1: Low confidence text at (970, 3884, 1024, 3963): /О",
+      "Page 1: Low confidence text at (1445, 3892, 1532, 3944): Kx",
+      "Page 1: Low confidence text at (3967, 3884, 4060, 3972): |",
+      "Page 1: Low confidence text at (4054, 3980, 4059, 4016): !",
+      "Page 1: Low confidence text at (3966, 4127, 3969, 4136): ,",
+      "Page 1: Low confidence text at (3961, 4259, 3966, 4300): b",
+      "Page 1: Low confidence text at (227, 4902, 281, 4969): -",
+      "Page 1: Low confidence text at (3953, 4923, 3961, 4990): ;",
+      "Page 1 table 1 R2C5: unrecognized numeric cell '>'; stored null",
+      "Page 1 table 1: surrounding text requires semantic review (notes parser handoff): * NormDoc2JSON + Тест распознавания | | | | Карта 03. Растачивание отверстий В | - . Учебные значения для проверки ОСК. Для производственных расчётов не применять. | | | | Условия применимости — серый чугун, расточной резец, единичнове производство. | | о | Шероховатость Ra 3,2; квалитет IT9, Диаметр OD и длина |. заданы в мм. Все значения | | р | времени указаны в минутах. | | 1 ро | Расчётная формула | | | T = (ТЫ + Tvid) х Кгл х Кж | | р. | ? | | 4 Го | j - | } Е | bo | | 4 | | - | : | : | { | | | | | : | | | | ь . ‹ 4 | y | | | | | Примечания | | 4 | | | ] 1. Tvid = 0,05 мин при допуске +0,02 мм; в остальных случаях Tvid = 0. , | | i a | 1 2. Для глухого отверстия Кгл = 1,2; для сквозного Кгл = 1,0. | = | | 3. При |. /О > 3 принять Kx = 1,3; иначе Кж = 1,0. | | F ! | 4, Прочерк обозначает отсутствие значения. Десятичный разделитель — запятая. | | , 4 | b | - Учебная карта для тестирования OCR 3/3 ;"
+    ]
+  },
+  {
+    "file": "card03_tilted_jpg.json",
+    "matrix_matches": true,
+    "grid": {
+      "row_param_name": "row_param",
+      "row_condition": "up_to",
+      "col_param_name": "length_l_mm",
+      "col_condition": "up_to",
+      "rows_range": [
+        6.0,
+        8.0,
+        10.0,
+        12.0,
+        16.0,
+        20.0,
+        25.0,
+        32.0
+      ],
+      "cols_range": [
+        10.0,
+        20.0,
+        30.0,
+        40.0,
+        60.0
+      ],
+      "values_matrix": [
+        [
+          0.2,
+          0.28,
+          0.36,
+          null,
+          null
+        ],
+        [
+          0.24,
+          0.33,
+          0.43,
+          0.56,
+          null
+        ],
+        [
+          0.29,
+          0.4,
+          0.52,
+          0.67,
+          0.91
+        ],
+        [
+          0.35,
+          0.48,
+          0.63,
+          0.81,
+          1.1
+        ],
+        [
+          0.43,
+          0.59,
+          0.77,
+          0.99,
+          1.35
+        ],
+        [
+          0.52,
+          0.72,
+          0.94,
+          1.21,
+          1.65
+        ],
+        [
+          0.64,
+          0.88,
+          1.15,
+          1.48,
+          2.02
+        ],
+        [
+          0.79,
+          1.09,
+          1.42,
+          1.83,
+          2.49
+        ]
+      ]
+    },
+    "rules": 0,
+    "warnings": [
+      "Page 1: Perspective corrected from table border; verify geometry",
+      "Page 1: Region 1: Table 1 R3C6: unreadable ink, stored null",
+      "Page 1: Region 1: Table 1 R2C6: low confidence 0.47: oe",
+      "Page 1: Region 1: Table 1 R2C5: unreadable ink, stored null",
+      "Page 1: Low confidence text at (2194, 1155, 2557, 1198): NormDoc2JSON",
+      "Page 1: Low confidence text at (2574, 1167, 2589, 1182): »",
+      "Page 1: Low confidence text at (4650, 1077, 4652, 1079): |",
+      "Page 1: Low confidence text at (2187, 1478, 2297, 1518): учеб",
+      "Page 1: Low confidence text at (2305, 1467, 2385, 1526): чые",
+      "Page 1: Low confidence text at (2407, 1485, 2613, 1518): хначения",
+      "Page 1: Low confidence text at (3630, 1472, 3838, 1514): расчётов",
+      "Page 1: Low confidence text at (3854, 1478, 3906, 1509): HO",
+      "Page 1: Low confidence text at (1757, 1717, 1764, 1770): |",
+      "Page 1: Low confidence text at (3113, 1723, 3210, 1770): 19.",
+      "Page 1: Low confidence text at (3494, 1720, 3582, 1766): SD",
+      "Page 1: Low confidence text at (2304, 2119, 2456, 2187): (ТЫ",
+      "Page 1: Low confidence text at (5149, 2681, 5156, 2756): |",
+      "Page 1: Low confidence text at (1738, 2767, 1746, 2893): !",
+      "Page 1: Low confidence text at (4827, 3276, 4828, 3302): |",
+      "Page 1: Low confidence text at (5159, 3252, 5261, 3432): |.",
+      "Page 1: Low confidence text at (5332, 3375, 5336, 3378): |",
+      "Page 1: Low confidence text at (5168, 3564, 5234, 3724): =.",
+      "Page 1: Low confidence text at (5251, 3584, 5337, 3700): a",
+      "Page 1: Low confidence text at (5361, 3600, 5445, 3696): =“",
+      "Page 1: Low confidence text at (5156, 3790, 5225, 4004): Я",
+      "Page 1: Low confidence text at (5280, 3866, 5311, 3925): -",
+      "Page 1: Low confidence text at (5343, 3840, 5378, 3908): ^",
+      "Page 1: Low confidence text at (5414, 3834, 5512, 3926): a",
+      "Page 1: Low confidence text at (1764, 3936, 1771, 4058): :",
+      "Page 1: Low confidence text at (3929, 3973, 4042, 4020): ТМА",
+      "Page 1: Low confidence text at (5156, 4000, 5201, 4107): }",
+      "Page 1: Low confidence text at (5218, 3934, 5320, 4045): oe",
+      "Page 1: Low confidence text at (5342, 4002, 5345, 4003): |",
+      "Page 1: Low confidence text at (5362, 3946, 5389, 4046): .",
+      "Page 1: Low confidence text at (5435, 4014, 5461, 4024): .",
+      "Page 1: Low confidence text at (5483, 3941, 5555, 4055): =",
+      "Page 1: Low confidence text at (5155, 4095, 5191, 4205): |",
+      "Page 1: Low confidence text at (5232, 4139, 5238, 4143): ,",
+      "Page 1: Low confidence text at (5271, 4057, 5534, 4184): НТИ.",
+      "Page 1: Low confidence text at (5550, 4102, 5560, 4138): .",
+      "Page 1: Low confidence text at (2382, 4249, 2401, 4296): Г",
+      "Page 1: Low confidence text at (2420, 4240, 2471, 4310): /О",
+      "Page 1: Low confidence text at (5291, 4217, 5334, 4281): —",
+      "Page 1: Low confidence text at (5371, 4205, 5600, 4333): ore",
+      "Page 1: Low confidence text at (5390, 4355, 5496, 4409): oo",
+      "Page 1: Low confidence text at (5150, 4715, 5158, 4754): |",
+      "Page 1: Low confidence text at (2158, 5184, 2348, 5224): Учебная",
+      "Page 1: Low confidence text at (5147, 5123, 5168, 5197): |",
+      "Page 1 table 1 R2C6: unrecognized numeric cell 'oe'; stored null",
+      "Page 1 table 1: surrounding text requires semantic review (notes parser handoff): NormDoc2JSON » Тест распознавания | | | Карта 03. Растачивание отверстий | учеб чые хначения для проверки OCR. Для производственных расчётов HO применять. | Условия применимости — серый чугун, расточной резец, единичное производство. | | Шероховатость Ка 3,2; квалитет 19. Диаметр SD и длина L заданы в мм. Все значения | времени указаны в минутах. | | Расчётная формула | | Т= (ТЫ + Tvid) х Кгл х Кж | | | ! | | | | |. | | | =. a =“ | Примечания Я - ^ a | : 1. Tvid = 0,05 мин при допуске +0,02 мм; в остальных случаях ТМА = 0. } oe | . . = | 2. Для глухого отверстия Кгл = 1,2; для сквозного Кгл = 1,0. | , НТИ. . | | 3. При Г /О > 3 принять Кж = 1,3; иначе Кж = 1,0. — ore | | 4. Прочерк обозначает отсутствие значения. Десятичный разделитель — запятая. | oo | | | | | | | Учебная карта для тестирования OCR 3/3 |"
+    ]
+  }
+]

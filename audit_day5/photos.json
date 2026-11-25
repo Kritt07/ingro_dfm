@@ -1,0 +1,769 @@
+[
+  {
+    "file": "card01_straight.jpg",
+    "seconds": 6.139,
+    "correct_numeric_cells": 29,
+    "total_numeric_cells": 29,
+    "accuracy": 1.0,
+    "grids": [
+      [
+        [
+          "Диамотр О, мм, до",
+          "L до 10 мм",
+          "L до 20 мм",
+          "L до 30 мм",
+          "L до 50 мм"
+        ],
+        [
+          "2",
+          "0,12",
+          "0,24",
+          "-",
+          null
+        ],
+        [
+          "3",
+          "0,15",
+          "0,28",
+          "0,41",
+          "-"
+        ],
+        [
+          "5",
+          "0,18",
+          "0,31",
+          "0,45",
+          "0,68"
+        ],
+        [
+          "8",
+          "0,22",
+          "0,36",
+          "0,52",
+          "0,79"
+        ],
+        [
+          "10",
+          "0,25",
+          "0,42",
+          "0,61",
+          "0,93"
+        ],
+        [
+          "12",
+          "0,29",
+          "0,48",
+          "0,70",
+          "1,08"
+        ],
+        [
+          "16",
+          "0,35",
+          "0,58",
+          "0,84",
+          "1,27"
+        ],
+        [
+          "20",
+          "0,43",
+          "0,71",
+          "1,02",
+          "1,56"
+        ]
+      ]
+    ],
+    "warnings": [
+      "Perspective corrected from table border; verify geometry",
+      "Region 1: Table 1 R2C5: unreadable ink, stored null",
+      "Region 1: Table 1 R1C2: low confidence 0.76: L до 10 мм",
+      "Low confidence text at (51, 126, 64, 127): .",
+      "Low confidence text at (184, 118, 324, 136): И",
+      "Low confidence text at (2664, 47, 3362, 76): о",
+      "Low confidence text at (3956, 34, 3967, 111): |",
+      "Low confidence text at (66, 119, 294, 171): —",
+      "Low confidence text at (3952, 116, 3969, 187): L",
+      "Low confidence text at (54, 461, 148, 524): cao",
+      "Low confidence text at (283, 463, 292, 521): |",
+      "Low confidence text at (769, 467, 1156, 515): NormDoc2JSON",
+      "Low confidence text at (4123, 496, 4157, 500): 7",
+      "Low confidence text at (79, 616, 240, 698): an",
+      "Low confidence text at (71, 779, 107, 854): -",
+      "Low confidence text at (124, 764, 172, 866): С:",
+      "Low confidence text at (766, 811, 980, 854): Учебные",
+      "Low confidence text at (95, 1001, 232, 1037): Soe,",
+      "Low confidence text at (269, 961, 298, 1085): |",
+      "Low confidence text at (102, 1075, 250, 1143): о",
+      "Low confidence text at (763, 1072, 868, 1121): Т1Ы",
+      "Low confidence text at (3923, 1092, 3931, 1162): |",
+      "Low confidence text at (168, 1481, 172, 1484): |",
+      "Low confidence text at (147, 1644, 303, 1723): 4]",
+      "Low confidence text at (3927, 1648, 3936, 1715): :",
+      "Low confidence text at (291, 1727, 302, 1767): Я",
+      "Low confidence text at (3926, 1736, 3937, 1764): t",
+      "Low confidence text at (150, 1811, 300, 1919): |",
+      "Low confidence text at (3923, 1919, 3937, 1991): Го",
+      "Low confidence text at (279, 1997, 294, 2095): |",
+      "Low confidence text at (274, 2100, 286, 2274): |",
+      "Low confidence text at (713, 2142, 714, 2234): |",
+      "Low confidence text at (3927, 2326, 3938, 2394): |",
+      "Low confidence text at (204, 2501, 255, 2510): -",
+      "Low confidence text at (3927, 2500, 3943, 2567): '",
+      "Low confidence text at (3930, 2587, 3941, 2627): |",
+      "Low confidence text at (294, 2679, 300, 2758): |",
+      "Low confidence text at (3930, 2645, 3940, 2736): |",
+      "Low confidence text at (3925, 2981, 3973, 3018): |.",
+      "Low confidence text at (265, 3142, 304, 3226): -",
+      "Low confidence text at (319, 3548, 331, 3575): }",
+      "Low confidence text at (3900, 3547, 3911, 3590): }",
+      "Low confidence text at (3897, 3591, 3906, 3631): |"
+    ]
+  },
+  {
+    "file": "card01_tilted.jpg",
+    "seconds": 6.948,
+    "correct_numeric_cells": 29,
+    "total_numeric_cells": 29,
+    "accuracy": 1.0,
+    "grids": [
+      [
+        [
+          "Деаметр О. мм, до",
+          "Е до 10 мм",
+          "L до 20 мм",
+          null,
+          "L до 50 мм"
+        ],
+        [
+          "2",
+          "0,12",
+          "0,24",
+          null,
+          null
+        ],
+        [
+          "3",
+          "0,15",
+          "0,28",
+          "0,41",
+          null
+        ],
+        [
+          "5",
+          "0,18",
+          "0,31",
+          "0,45",
+          "0,68"
+        ],
+        [
+          "8",
+          "0,22",
+          "0,36",
+          "0,52",
+          "0,79"
+        ],
+        [
+          "10",
+          "0,25",
+          "0,42",
+          "0,61",
+          "0,93"
+        ],
+        [
+          "12",
+          "0,29",
+          "0,48",
+          "0,70",
+          "1,08"
+        ],
+        [
+          "16",
+          "0,35",
+          "0,58",
+          "0,84",
+          "1,27"
+        ],
+        [
+          "20",
+          "0,43",
+          "0,71",
+          "1,02",
+          "1,56"
+        ]
+      ]
+    ],
+    "warnings": [
+      "Perspective corrected from table border; verify geometry",
+      "Region 1: Table 1 R3C5: unreadable ink, stored null",
+      "Region 1: Table 1 R2C5: unreadable ink, stored null",
+      "Region 1: Table 1 R2C4: unreadable ink, stored null",
+      "Region 1: Table 1 R1C1: low confidence 0.07: Деаметр О. мм, до",
+      "Region 1: Table 1 R1C2: low confidence 0.39: Е до 10 мм",
+      "Region 1: Table 1: missing cell borders; review structure",
+      "Low confidence text at (908, 0, 1149, 722): |",
+      "Low confidence text at (4360, 973, 4571, 1198): \\",
+      "Low confidence text at (2724, 1110, 2756, 1127): w",
+      "Low confidence text at (4867, 1093, 4895, 1123): ‘\\",
+      "Low confidence text at (1150, 1324, 1350, 1363): Учебчые",
+      "Low confidence text at (1908, 1310, 2025, 1351): OCR.",
+      "Low confidence text at (2145, 1315, 2575, 1356): производственных",
+      "Low confidence text at (2589, 1313, 2796, 1353): расч8тов",
+      "Low confidence text at (4571, 1200, 4841, 1493): \\",
+      "Low confidence text at (1149, 1570, 1247, 1616): МЫ",
+      "Low confidence text at (2118, 1560, 2148, 1609): Ц",
+      "Low confidence text at (4841, 1494, 4976, 1639): <",
+      "Low confidence text at (3790, 2466, 3791, 2495): |",
+      "Low confidence text at (4118, 2409, 4124, 2502): :",
+      "Low confidence text at (4452, 2906, 4454, 2908): |",
+      "Low confidence text at (4123, 2976, 4132, 3013): |",
+      "Low confidence text at (4122, 3023, 4133, 3062): |",
+      "Low confidence text at (4188, 3330, 4192, 3332): |",
+      "Low confidence text at (355, 3413, 531, 3478): Te",
+      "Low confidence text at (475, 3543, 619, 3604): о.",
+      "Low confidence text at (2155, 3539, 2253, 3584): ТЫ!",
+      "Low confidence text at (490, 3670, 590, 3695): о",
+      "Low confidence text at (733, 3640, 749, 3776): |",
+      "Low confidence text at (598, 3965, 754, 4010): |",
+      "Low confidence text at (399, 4941, 540, 5000): о",
+      "Low confidence text at (682, 4955, 739, 5001): _",
+      "Low confidence text at (764, 4727, 787, 5157): !",
+      "Low confidence text at (3675, 4946, 3690, 4983): 1",
+      "Low confidence text at (3709, 4907, 3753, 5001): Г’"
+    ]
+  },
+  {
+    "file": "card02_straight.jpg",
+    "seconds": 5.16,
+    "correct_numeric_cells": 28,
+    "total_numeric_cells": 28,
+    "accuracy": 1.0,
+    "grids": [
+      [
+        [
+          "Ширина В, мм, до",
+          "—_ “Открытый na3 |",
+          "—_ “Открытый na3 |",
+          "- _ Закрытый паз",
+          "- _ Закрытый паз"
+        ],
+        [
+          "Ширина В, мм, до",
+          "_ 6$ 20 мм",
+          "20 <(5 40 мм",
+          "L320 мм_",
+          "20 <1540 мм"
+        ],
+        [
+          "3",
+          "0,22",
+          "0,37",
+          "0,31",
+          "0,49"
+        ],
+        [
+          "4",
+          "0,25",
+          "0,42",
+          "0,35",
+          "0,55"
+        ],
+        [
+          "6",
+          "0,31",
+          "0,51",
+          "0,43",
+          "0,68"
+        ],
+        [
+          "8",
+          "0,38",
+          "0,63",
+          "0,52",
+          "0,82"
+        ],
+        [
+          "10",
+          "0,46",
+          "0,76",
+          "0,64",
+          "1,01"
+        ],
+        [
+          "12",
+          "0,55",
+          "0,91",
+          "0,77",
+          "1,21"
+        ],
+        [
+          "16",
+          "0,72",
+          "1,19",
+          "1,00",
+          "1,58"
+        ]
+      ]
+    ],
+    "warnings": [
+      "Perspective corrected from table border; verify geometry",
+      "Region 1: Table 1 R2C3: low confidence 0.33: 20 <(5 40 мм",
+      "Region 1: Table 1 R2C5: low confidence 0.00: 20 <1540 мм",
+      "Region 1: Table 1 R2C4: low confidence 0.30: L320 мм_",
+      "Region 1: Table 1 R2C2: low confidence 0.47: _ 6$ 20 мм",
+      "Region 1: Table 1 R1C4: low confidence 0.00: - _ Закрытый паз",
+      "Region 1: Table 1 R1C2: low confidence 0.00: —_ “Открытый na3 |",
+      "Low confidence text at (27, 486, 61, 574): й",
+      "Low confidence text at (89, 496, 127, 557): ..",
+      "Low confidence text at (25, 642, 157, 763): |",
+      "Low confidence text at (40, 851, 61, 912): |",
+      "Low confidence text at (152, 848, 166, 955): |",
+      "Low confidence text at (3844, 847, 3855, 917): |",
+      "Low confidence text at (4102, 1098, 4105, 1111): |",
+      "Low confidence text at (49, 1131, 96, 1208): 7",
+      "Low confidence text at (3846, 1165, 3859, 1251): |",
+      "Low confidence text at (4034, 1128, 4105, 1216): |",
+      "Low confidence text at (57, 1367, 167, 1440): |",
+      "Low confidence text at (69, 1740, 168, 1867): 1",
+      "Low confidence text at (4075, 1750, 4077, 1755): |",
+      "Low confidence text at (75, 1933, 162, 2032): -",
+      "Low confidence text at (3851, 1872, 3864, 2085): |",
+      "Low confidence text at (4064, 1934, 4071, 1971): !",
+      "Low confidence text at (77, 2030, 161, 2068): 4",
+      "Low confidence text at (80, 2071, 159, 2121): `}",
+      "Low confidence text at (81, 2125, 157, 2218): и",
+      "Low confidence text at (3961, 2138, 3976, 2198): 7",
+      "Low confidence text at (85, 2219, 153, 2257): |",
+      "Low confidence text at (3853, 2299, 3866, 2319): b",
+      "Low confidence text at (3919, 2275, 3939, 2278): =",
+      "Low confidence text at (88, 2339, 92, 2384): !",
+      "Low confidence text at (92, 2470, 97, 2545): !",
+      "Low confidence text at (149, 2496, 158, 2606): |",
+      "Low confidence text at (4044, 2495, 4047, 2541): |",
+      "Low confidence text at (98, 2653, 103, 2730): :",
+      "Low confidence text at (110, 3038, 115, 3119): |",
+      "Low confidence text at (3906, 3083, 3951, 3099): -",
+      "Low confidence text at (3983, 3104, 4022, 3120): ;",
+      "Low confidence text at (4009, 3125, 4023, 3341): |",
+      "Low confidence text at (3888, 3358, 3971, 3440): о",
+      "Low confidence text at (172, 4937, 176, 4978): .",
+      "Low confidence text at (1091, 4924, 1421, 4967): тестирования",
+      "Low confidence text at (3816, 4896, 3924, 4967): Е",
+      "Low confidence text at (174, 5019, 590, 5209): Г",
+      "Low confidence text at (1203, 5211, 1371, 5215): ОНИ",
+      "Low confidence text at (1460, 5206, 1471, 5208): -",
+      "Low confidence text at (1507, 5202, 1538, 5203): —",
+      "Low confidence text at (1984, 5205, 2392, 5226): >",
+      "Low confidence text at (2574, 5205, 2685, 5232): -—-",
+      "Low confidence text at (2871, 5202, 3136, 5231): п",
+      "Low confidence text at (3302, 5201, 3689, 5227):  e",
+      "Low confidence text at (3706, 5177, 3827, 5223): Ши",
+      "Low confidence text at (3914, 5151, 3935, 5222): |"
+    ]
+  },
+  {
+    "file": "card02_tilted.jpg",
+    "seconds": 4.837,
+    "correct_numeric_cells": 28,
+    "total_numeric_cells": 28,
+    "accuracy": 1.0,
+    "grids": [
+      [
+        [
+          "Ширина 6, мм, дэ",
+          "Открытый паз",
+          "Открытый паз",
+          "Закрытый паз",
+          "Закрытый паз"
+        ],
+        [
+          "Ширина 6, мм, дэ",
+          "Ls 20 мм",
+          "20 <Е $5 40 мм",
+          "Е $ 20 мм",
+          "20<( $40 мм"
+        ],
+        [
+          "3",
+          "0,22",
+          "0,37",
+          "0,31",
+          "0,49"
+        ],
+        [
+          "4",
+          "0,25",
+          "0,42",
+          "0,35",
+          "0,55"
+        ],
+        [
+          "6",
+          "0,31",
+          "0,51",
+          "0,43",
+          "0,68"
+        ],
+        [
+          "8",
+          "0,38",
+          "0,63",
+          "0,52",
+          "0,82"
+        ],
+        [
+          "10",
+          "0,46",
+          "0,76",
+          "0,64",
+          "1,01"
+        ],
+        [
+          "12",
+          "0,55",
+          "0,91",
+          "0,77",
+          "1,21"
+        ],
+        [
+          "16",
+          "0,72",
+          "1,19",
+          "1,00",
+          "1,58"
+        ]
+      ]
+    ],
+    "warnings": [
+      "Perspective corrected from table border; verify geometry",
+      "Region 1: Table 1 R2C4: low confidence 0.49: Е $ 20 мм",
+      "Region 1: Table 1 R2C3: low confidence 0.60: 20 <Е $5 40 мм",
+      "Region 1: Table 1 R2C5: low confidence 0.00: 20<( $40 мм",
+      "Region 1: Table 1 R2C2: low confidence 0.38: Ls 20 мм",
+      "Region 1: Table 1 R1C1: low confidence 0.46: Ширина 6, мм, дэ",
+      "Region 1: Table 1 R1C2: low confidence 0.73: Открытый паз",
+      "Low confidence text at (1010, 798, 1553, 828): о",
+      "Low confidence text at (2044, 776, 3549, 803): Ытмттштыкы—————ы—=—95—595",
+      "Low confidence text at (3532, 765, 3903, 933): |",
+      "Low confidence text at (3889, 998, 3900, 1061): |",
+      "Low confidence text at (4343, 975, 4421, 1098): м",
+      "Low confidence text at (977, 1165, 1332, 1211): NormDoc2JSON",
+      "Low confidence text at (1493, 1161, 1827, 1207): распознавания",
+      "Low confidence text at (4447, 1141, 4502, 1224): м",
+      "Low confidence text at (4511, 1241, 4550, 1299): к",
+      "Low confidence text at (973, 1489, 1171, 1527): Учебные",
+      "Low confidence text at (1503, 1489, 1705, 1530): проверки",
+      "Low confidence text at (2395, 1484, 2599, 1524): расчётов",
+      "Low confidence text at (4650, 1463, 4695, 1527): N",
+      "Low confidence text at (3888, 1612, 3897, 1669): |",
+      "Low confidence text at (1712, 1644, 2098, 1692): алюминиевый",
+      "Low confidence text at (3888, 1676, 3899, 1720): й",
+      "Low confidence text at (4772, 1655, 4808, 1709): м",
+      "Low confidence text at (1219, 1743, 1509, 1789): призедсно",
+      "Low confidence text at (3889, 1721, 3902, 1785): }",
+      "Low confidence text at (4810, 1715, 4860, 1789): \\.",
+      "Low confidence text at (3892, 1965, 3902, 2016): {",
+      "Low confidence text at (3893, 2021, 3906, 2082): :",
+      "Low confidence text at (550, 2496, 559, 2524): |",
+      "Low confidence text at (546, 2619, 556, 2672): |",
+      "Low confidence text at (546, 2673, 555, 2699): (",
+      "Low confidence text at (3899, 2675, 3907, 2698): {",
+      "Low confidence text at (545, 2850, 550, 2882): ‘",
+      "Low confidence text at (3900, 2866, 3909, 2899): t",
+      "Low confidence text at (3901, 3096, 3915, 3144): }",
+      "Low confidence text at (416, 3265, 489, 3313): —",
+      "Low confidence text at (387, 3439, 496, 3496): nt",
+      "Low confidence text at (334, 3580, 360, 3625): _",
+      "Low confidence text at (355, 3714, 391, 3766): 7",
+      "Low confidence text at (277, 3818, 286, 3843): |",
+      "Low confidence text at (485, 4884, 489, 4887): .",
+      "Low confidence text at (508, 4895, 542, 4913): A",
+      "Low confidence text at (587, 4855, 591, 4858): .",
+      "Low confidence text at (3847, 4852, 3873, 4918): й",
+      "Low confidence text at (522, 5107, 609, 5145): a"
+    ]
+  },
+  {
+    "file": "card03_straight.jpg",
+    "seconds": 6.578,
+    "correct_numeric_cells": 37,
+    "total_numeric_cells": 37,
+    "accuracy": 1.0,
+    "grids": [
+      [
+        [
+          "ОО, мм, до",
+          "К до 10",
+          "Lp 20 |",
+          "| L до 30 |",
+          "L до 40",
+          "L до 60"
+        ],
+        [
+          "6",
+          "0,20",
+          "0,28",
+          "0,36",
+          ">",
+          null
+        ],
+        [
+          "8",
+          "0,24",
+          "0,33",
+          "0,43",
+          "0,56",
+          null
+        ],
+        [
+          "10",
+          "0,29",
+          "0,40",
+          "0,52",
+          "0,67",
+          "0,91"
+        ],
+        [
+          "12",
+          "0,35",
+          "0,48",
+          "0,63",
+          "0,81",
+          "1,10"
+        ],
+        [
+          "16",
+          "0,43",
+          "0,59",
+          "0,77",
+          "0,99",
+          "1,35"
+        ],
+        [
+          "20",
+          "0,52",
+          "0,72",
+          "0,94",
+          "1,21",
+          "1,65"
+        ],
+        [
+          "25",
+          "0,64",
+          "0,88",
+          "1,15",
+          "1,48",
+          "2,02"
+        ],
+        [
+          "32",
+          "0,79",
+          "1,09",
+          "1,42",
+          "1,83",
+          "2,49"
+        ]
+      ]
+    ],
+    "warnings": [
+      "Perspective corrected from table border; verify geometry",
+      "Region 1: Table 1 R3C6: unreadable ink, stored null",
+      "Region 1: Table 1 R2C6: unreadable ink, stored null",
+      "Region 1: Table 1 R2C5: low confidence 0.45: >",
+      "Region 1: Table 1 R1C2: low confidence 0.04: К до 10",
+      "Region 1: Table 1 R1C4: low confidence 0.77: | L до 30 |",
+      "Region 1: Table 1 R1C3: low confidence 0.00: Lp 20 |",
+      "Low confidence text at (93, 412, 128, 475): *",
+      "Low confidence text at (1120, 436, 1135, 452): +",
+      "Low confidence text at (3948, 431, 3951, 494): |",
+      "Low confidence text at (4111, 463, 4118, 466): |",
+      "Low confidence text at (42, 589, 237, 680): |",
+      "Low confidence text at (3947, 585, 4149, 667): В",
+      "Low confidence text at (40, 764, 109, 803): -",
+      "Low confidence text at (181, 834, 188, 837): .",
+      "Low confidence text at (4142, 758, 4145, 834): |",
+      "Low confidence text at (53, 955, 237, 1038): |",
+      "Low confidence text at (2486, 974, 2813, 1023): единичнове",
+      "Low confidence text at (62, 1056, 178, 1066): о",
+      "Low confidence text at (226, 1029, 236, 1138): |",
+      "Low confidence text at (1713, 1060, 1821, 1114): IT9,",
+      "Low confidence text at (2135, 1056, 2231, 1111): OD",
+      "Low confidence text at (49, 1158, 147, 1184): р",
+      "Low confidence text at (226, 1139, 236, 1227): |",
+      "Low confidence text at (118, 1229, 236, 1323): 1",
+      "Low confidence text at (3878, 1247, 3962, 1319): ро",
+      "Low confidence text at (4124, 1347, 4128, 1422): |",
+      "Low confidence text at (827, 1507, 991, 1584): (ТЫ",
+      "Low confidence text at (3962, 1913, 4113, 2013): р.",
+      "Low confidence text at (213, 2007, 225, 2030): ?",
+      "Low confidence text at (121, 2042, 224, 2111): 4",
+      "Low confidence text at (3963, 2023, 3981, 2051): Го",
+      "Low confidence text at (4056, 2118, 4109, 2178): -",
+      "Low confidence text at (3964, 2300, 4042, 2367): bo",
+      "Low confidence text at (4098, 2303, 4104, 2355): |",
+      "Low confidence text at (212, 2445, 223, 2478): 4",
+      "Low confidence text at (120, 2486, 227, 2548): -",
+      "Low confidence text at (4095, 2495, 4099, 2554): :",
+      "Low confidence text at (218, 2673, 230, 2734): :",
+      "Low confidence text at (223, 2744, 231, 2771): {",
+      "Low confidence text at (3973, 2734, 4092, 2774): |",
+      "Low confidence text at (4085, 2920, 4087, 2967): :",
+      "Low confidence text at (3977, 2970, 3993, 3099): |",
+      "Low confidence text at (4079, 3002, 4084, 3086): |",
+      "Low confidence text at (145, 3106, 150, 3115): ь",
+      "Low confidence text at (3978, 3103, 3986, 3116): ‹",
+      "Low confidence text at (4078, 3088, 4084, 3114): 4",
+      "Low confidence text at (196, 3190, 244, 3274): y",
+      "Low confidence text at (154, 3280, 244, 3306): |",
+      "Low confidence text at (162, 3456, 165, 3508): |",
+      "Low confidence text at (166, 3539, 254, 3574): 4",
+      "Low confidence text at (242, 3579, 257, 3662): ]",
+      "Low confidence text at (3316, 3646, 3324, 3655): ,",
+      "Low confidence text at (4020, 3621, 4068, 3654): |",
+      "Low confidence text at (170, 3663, 174, 3709): i",
+      "Low confidence text at (3963, 3665, 3976, 3713): a",
+      "Low confidence text at (216, 3718, 258, 3767): 1",
+      "Low confidence text at (4009, 3718, 4066, 3791): =",
+      "Low confidence text at (912, 3892, 984, 3944): |.",
+      "Low confidence text at (970, 3884, 1024, 3963): /О",
+      "Low confidence text at (1445, 3892, 1532, 3944): Kx",
+      "Low confidence text at (3967, 3884, 4060, 3972): |",
+      "Low confidence text at (4054, 3980, 4059, 4016): !",
+      "Low confidence text at (3966, 4127, 3969, 4136): ,",
+      "Low confidence text at (3961, 4259, 3966, 4300): b",
+      "Low confidence text at (227, 4902, 281, 4969): -",
+      "Low confidence text at (3953, 4923, 3961, 4990): ;"
+    ]
+  },
+  {
+    "file": "card03_tilted.jpg",
+    "seconds": 7.681,
+    "correct_numeric_cells": 37,
+    "total_numeric_cells": 37,
+    "accuracy": 1.0,
+    "grids": [
+      [
+        [
+          "ОО, мм, до",
+          "L до 10",
+          "L до 20",
+          "L до 30",
+          "L до 40",
+          "L до 60"
+        ],
+        [
+          "6",
+          "0.20",
+          "0.28",
+          "0.36",
+          null,
+          "oe"
+        ],
+        [
+          "8",
+          "0,24",
+          "0,33",
+          "0,43",
+          "0,56",
+          null
+        ],
+        [
+          "10",
+          "0,29",
+          "0,40",
+          "0,52",
+          "0,67",
+          "0,91"
+        ],
+        [
+          "12",
+          "0,35",
+          "0,48",
+          "0,63",
+          "0,81",
+          "1,10"
+        ],
+        [
+          "16",
+          "0,43",
+          "0,59",
+          "0,77",
+          "0,99",
+          "1,35"
+        ],
+        [
+          "20",
+          "0,52",
+          "0,72",
+          "0,94",
+          "1,21",
+          "1,65"
+        ],
+        [
+          "25",
+          "0,64",
+          "0,88",
+          "1,15",
+          "1,48",
+          "2,02"
+        ],
+        [
+          "32",
+          "0,79",
+          "1.09",
+          "1,42",
+          "1,83",
+          "2,49"
+        ]
+      ]
+    ],
+    "warnings": [
+      "Perspective corrected from table border; verify geometry",
+      "Region 1: Table 1 R3C6: unreadable ink, stored null",
+      "Region 1: Table 1 R2C6: low confidence 0.47: oe",
+      "Region 1: Table 1 R2C5: unreadable ink, stored null",
+      "Low confidence text at (2194, 1155, 2557, 1198): NormDoc2JSON",
+      "Low confidence text at (2574, 1167, 2589, 1182): »",
+      "Low confidence text at (4650, 1077, 4652, 1079): |",
+      "Low confidence text at (2187, 1478, 2297, 1518): учеб",
+      "Low confidence text at (2305, 1467, 2385, 1526): чые",
+      "Low confidence text at (2407, 1485, 2613, 1518): хначения",
+      "Low confidence text at (3630, 1472, 3838, 1514): расчётов",
+      "Low confidence text at (3854, 1478, 3906, 1509): HO",
+      "Low confidence text at (1757, 1717, 1764, 1770): |",
+      "Low confidence text at (3113, 1723, 3210, 1770): 19.",
+      "Low confidence text at (3494, 1720, 3582, 1766): SD",
+      "Low confidence text at (2304, 2119, 2456, 2187): (ТЫ",
+      "Low confidence text at (5149, 2681, 5156, 2756): |",
+      "Low confidence text at (1738, 2767, 1746, 2893): !",
+      "Low confidence text at (4827, 3276, 4828, 3302): |",
+      "Low confidence text at (5159, 3252, 5261, 3432): |.",
+      "Low confidence text at (5332, 3375, 5336, 3378): |",
+      "Low confidence text at (5168, 3564, 5234, 3724): =.",
+      "Low confidence text at (5251, 3584, 5337, 3700): a",
+      "Low confidence text at (5361, 3600, 5445, 3696): =“",
+      "Low confidence text at (5156, 3790, 5225, 4004): Я",
+      "Low confidence text at (5280, 3866, 5311, 3925): -",
+      "Low confidence text at (5343, 3840, 5378, 3908): ^",
+      "Low confidence text at (5414, 3834, 5512, 3926): a",
+      "Low confidence text at (1764, 3936, 1771, 4058): :",
+      "Low confidence text at (3929, 3973, 4042, 4020): ТМА",
+      "Low confidence text at (5156, 4000, 5201, 4107): }",
+      "Low confidence text at (5218, 3934, 5320, 4045): oe",
+      "Low confidence text at (5342, 4002, 5345, 4003): |",
+      "Low confidence text at (5362, 3946, 5389, 4046): .",
+      "Low confidence text at (5435, 4014, 5461, 4024): .",
+      "Low confidence text at (5483, 3941, 5555, 4055): =",
+      "Low confidence text at (5155, 4095, 5191, 4205): |",
+      "Low confidence text at (5232, 4139, 5238, 4143): ,",
+      "Low confidence text at (5271, 4057, 5534, 4184): НТИ.",
+      "Low confidence text at (5550, 4102, 5560, 4138): .",
+      "Low confidence text at (2382, 4249, 2401, 4296): Г",
+      "Low confidence text at (2420, 4240, 2471, 4310): /О",
+      "Low confidence text at (5291, 4217, 5334, 4281): —",
+      "Low confidence text at (5371, 4205, 5600, 4333): ore",
+      "Low confidence text at (5390, 4355, 5496, 4409): oo",
+      "Low confidence text at (5150, 4715, 5158, 4754): |",
+      "Low confidence text at (2158, 5184, 2348, 5224): Учебная",
+      "Low confidence text at (5147, 5123, 5168, 5197): |"
+    ]
+  }
+]
