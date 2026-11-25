@@ -88,7 +88,7 @@ def map_raw_grid_to_table_grid(
 
     left_header_text = " ".join(h[0] for h in header_rows if h[0])
     top_header_text = " ".join(
-        cell for h in header_rows[:-1] for cell in h[1:] if cell
+        cell for h in header_rows for cell in h[1:] if cell
     ) or " ".join(header_rows[0][1:])
 
     row_param_name, row_condition = detect_axis_semantics(left_header_text, default_row_param)
@@ -103,7 +103,16 @@ def map_raw_grid_to_table_grid(
         raise ValueError("Пустой заголовок столбцов в нижней строке шапки.")
 
     col_nums = extract_numeric_tokens(leaf_col_headers)
-    if len(col_nums) == len(leaf_col_headers):
+    if len(header_rows) > 1 and any(
+        len(set(c for c in h[1:] if c)) > 1 for h in header_rows[:-1]
+    ):
+        cols_range = [" | ".join(dict.fromkeys(h[c] for h in header_rows if c < len(h) and h[c]))
+                      or f"col_{c}" for c in range(1, len(leaf_col_headers)+1)]
+        warnings.append("Многоуровневая ось сохранена строковыми условиями; требуется проверка.")
+    elif any(len(re.findall(r"[+-]?\d+(?:[.,]\d+)?", cell)) > 1 for cell in leaf_col_headers):
+        cols_range = leaf_col_headers
+        warnings.append("Интервалы столбцов сохранены строковыми условиями; требуется проверка.")
+    elif len(col_nums) == len(leaf_col_headers):
         cols_range: List[float | str] = col_nums
     else:
         cols_range = [c if c else f"col_{i+1}" for i, c in enumerate(leaf_col_headers)]
