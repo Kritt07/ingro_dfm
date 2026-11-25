@@ -134,44 +134,6 @@ def table_header_lines(page, table):
     return text[titles[-1]:] if titles else text
 
 
-def header_review_warnings(table, grid, page_number, table_number):
-    """Keep OCR axes explicitly reviewable even when confidence is high.
-
-    Confidence is not proof that a comparison sign or digit is correct.
-    Preserve the raw header in the warning so review needs no debug export.
-    """
-    from norm_importer.grid_mapper import _is_numeric_row_label
-    end = next((r for r in range(1, len(table.values))
-                if table.values[r] and _is_numeric_row_label(str(table.values[r][0] or ''))),
-               1)
-    headers = table.values[:end]
-    reasons = []
-    if end > 1:
-        reasons.append('многоуровневая шапка: проверить группы и границы интервалов')
-    if grid.row_param_name == 'row_param' or grid.col_param_name == 'col_param':
-        reasons.append('не определено имя параметра оси')
-    if len(set(map(str, grid.cols_range))) < len(grid.cols_range):
-        reasons.append('повторяющиеся метки столбцов')
-    for r, row in enumerate(headers):
-        for c, value in enumerate(row):
-            label = f'R{r+1}C{c+1}'
-            if value is None or not str(value).strip():
-                reasons.append(f'{label}: пустая или нераспознанная подпись')
-            confidence = (table.confidences[r][c]
-                          if r < len(table.confidences) and c < len(table.confidences[r]) else None)
-            if confidence is None:
-                reasons.append(f'{label}: нет оценки уверенности OCR')
-            elif confidence < .9:
-                reasons.append(f'{label}: уверенность OCR {confidence:.0%} ниже 90%')
-    prefix = f'B18: Page {page_number} table {table_number}: '
-    message = ('Проверьте шапку по оригиналу: имена параметров, числа, знаки сравнения '
-               'и соответствие столбцов. Даже высокая уверенность OCR не подтверждает оси.')
-    if reasons:
-        message += ' Причины: ' + '; '.join(reasons) + '.'
-    message += ' Сырая шапка: ' + json.dumps(headers, ensure_ascii=False)
-    return [prefix + message]
-
-
 def ocr_document(path, **kwargs):
     """Build Appendix A JSON model, carrying uncertain cells into diagnostics."""
     from norm_importer.schema import NormDocDocument, NormCard, SourceMetadata, SourceFormat, _parse_and_validate_cell
@@ -206,10 +168,6 @@ def ocr_document(path, **kwargs):
                             row[c]=None
                 grid, notes = map_raw_grid_to_table_grid(raw_grid)
                 warnings.extend(f'Page {page.page_number} table {index}: {n}' for n in notes)
-                review_notes = header_review_warnings(table, grid, page.page_number, index)
-                warnings.extend(review_notes)
-                for warning in review_notes:
-                    logger.warning(warning)
                 header_text=table_header_lines(page,table)
                 if not header_text:
                     warnings.append(f'Page {page.page_number} table {index}: no local header found')
