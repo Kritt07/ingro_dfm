@@ -291,6 +291,36 @@ def process_single_file(
         return ocr_document(file_path, lang=ocr_lang,
                             debug_dir=file_path.parent / (file_path.name + '.debug') if debug_images else None)
 
+    if detected_format == SourceFormat.PDF_VECTOR:
+        from normdoc2json.pdf import extract_pdf
+        extracted = extract_pdf(file_path)
+        warnings = list(extracted.warnings)
+        cards = []
+        for page in extracted.pages:
+            for index, table in enumerate(page.tables, 1):
+                try:
+                    previous = max((t.bbox[3] for t in page.tables
+                                    if t.bbox[3] <= table.bbox[1]), default=0)
+                    context = [b.text for b in page.blocks
+                               if previous <= b.bbox[1] and b.bbox[3] <= table.bbox[1]]
+                    header = parse_card_header(context, fallback_stem=file_path.stem)
+                    grid, diagnostics = map_raw_grid_to_table_grid(table.values)
+                    warnings.extend(diagnostics)
+                    cards.append(NormCard(
+                        card_id=f"{header.card_id}_P{page.page_number}_T{index}",
+                        card_title=header.card_title,
+                        applicability_conditions=header.applicability,
+                        calculation_formula=header.calculation_formula,
+                        result_unit=header.result_unit, table_grid=grid))
+                except Exception as exc:
+                    warnings.append(f"Page {page.page_number} table {index}: {exc}")
+        if not cards:
+            raise ValueError("No valid PDF tables: " + "; ".join(warnings))
+        return NormDocDocument(source_metadata=SourceMetadata(
+            source_file=file_path.name, source_format=detected_format,
+            extraction_method="normdoc2json.pdf", warnings=warnings,
+            requires_manual_review=bool(warnings)), cards=cards)
+
     return NormDocDocument(
         source_metadata=SourceMetadata(
             source_file=file_path.name,
