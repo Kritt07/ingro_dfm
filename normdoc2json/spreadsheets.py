@@ -208,6 +208,8 @@ def _read_ods(path: Path, result: SpreadsheetExtraction) -> None:
                     value = None
                     if kind in {"float", "currency", "percentage"}:
                         value = float(attr(cell, "office", "value"))
+                    elif kind in {"date", "time"}:
+                        value = attr(cell, "office", kind + "-value")
                     elif kind == "boolean":
                         value = attr(cell, "office", "boolean-value") == "true"
                     else:
