@@ -219,6 +219,7 @@ def collect_input_files(input_path: Path) -> List[Path]:
         return sorted(
             p for p in input_path.rglob("*")
             if p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
+            and not any(part.endswith(".debug") for part in p.relative_to(input_path).parts[:-1])
         )
     return []
 
