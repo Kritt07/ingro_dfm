@@ -197,36 +197,39 @@ def _read_ods(path: Path, result: SpreadsheetExtraction) -> None:
     with ZipFile(path) as archive:
         root = ET.fromstring(archive.read("content.xml"))
     for source in root.findall(".//table:table", ns):
-        sheet = SheetGrid(attr(source, "table", "name", "Sheet"), [])
-        for row in source.findall(".//table:table-row", ns):
-            for _ in range(int(attr(row, "table", "number-rows-repeated", "1"))):
-                values = []
-                for cell in row:
-                    if cell.tag not in {"{" + ns["table"] + "}table-cell", "{" + ns["table"] + "}covered-table-cell"}:
-                        continue
-                    kind = attr(cell, "office", "value-type")
-                    value = None
-                    if kind in {"float", "currency", "percentage"}:
-                        value = float(attr(cell, "office", "value"))
-                    elif kind in {"date", "time"}:
-                        value = attr(cell, "office", kind + "-value")
-                    elif kind == "boolean":
-                        value = attr(cell, "office", "boolean-value") == "true"
-                    else:
-                        value = attr(cell, "office", "string-value") or "\n".join(
-                            "".join(p.itertext()) for p in cell.findall("text:p", ns)) or None
-                    for _ in range(int(attr(cell, "table", "number-columns-repeated", "1"))):
-                        r, c = len(sheet.values) + 1, len(values) + 1
-                        formula = attr(cell, "table", "formula")
-                        if formula:
-                            sheet.formulas[r, c] = formula
-                            if value is None:
-                                result.warn(f"{sheet.name}!R{r}C{c}: нет кэша формулы")
-                        rs = int(attr(cell, "table", "number-rows-spanned", "1"))
-                        cs = int(attr(cell, "table", "number-columns-spanned", "1"))
-                        if rs > 1 or cs > 1:
-                            sheet.merged_ranges.append((r, c, r + rs - 1, c + cs - 1))
-                        values.append(value)
-                sheet.values.append(values)
-        _restore_merges(sheet)
-        result.sheets.append(sheet)
+        try:
+            sheet = SheetGrid(attr(source, "table", "name", "Sheet"), [])
+            for row in source.findall(".//table:table-row", ns):
+                for _ in range(int(attr(row, "table", "number-rows-repeated", "1"))):
+                    values = []
+                    for cell in row:
+                        if cell.tag not in {"{" + ns["table"] + "}table-cell", "{" + ns["table"] + "}covered-table-cell"}:
+                            continue
+                        kind = attr(cell, "office", "value-type")
+                        value = None
+                        if kind in {"float", "currency", "percentage"}:
+                            value = float(attr(cell, "office", "value"))
+                        elif kind in {"date", "time"}:
+                            value = attr(cell, "office", kind + "-value")
+                        elif kind == "boolean":
+                            value = attr(cell, "office", "boolean-value") == "true"
+                        else:
+                            value = attr(cell, "office", "string-value") or "\n".join(
+                                "".join(p.itertext()) for p in cell.findall("text:p", ns)) or None
+                        for _ in range(int(attr(cell, "table", "number-columns-repeated", "1"))):
+                            r, c = len(sheet.values) + 1, len(values) + 1
+                            formula = attr(cell, "table", "formula")
+                            if formula:
+                                sheet.formulas[r, c] = formula
+                                if value is None:
+                                    result.warn(f"{sheet.name}!R{r}C{c}: нет кэша формулы")
+                            rs = int(attr(cell, "table", "number-rows-spanned", "1"))
+                            cs = int(attr(cell, "table", "number-columns-spanned", "1"))
+                            if rs > 1 or cs > 1:
+                                sheet.merged_ranges.append((r, c, r + rs - 1, c + cs - 1))
+                            values.append(value)
+                    sheet.values.append(values)
+            _restore_merges(sheet)
+            result.sheets.append(sheet)
+        except Exception as exc:
+            result.warn(f"Лист {attr(source, 'table', 'name')}: {exc}")

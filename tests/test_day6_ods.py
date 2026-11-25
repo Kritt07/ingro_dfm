@@ -29,3 +29,18 @@ def test_typed_dates_and_times_without_display_text(tmp_path):
     result = extract_spreadsheet(path)
     assert result.sheets[0].values == [["2026-11-25", "PT1H30M"]]
     assert not result.warnings
+
+
+def test_bad_sheet_does_not_discard_good_sheet(tmp_path):
+    path = tmp_path / "partial.ods"
+    xml = '<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"><office:body><office:spreadsheet>'
+    for name, value in [("Bad", "broken"), ("Good", "42")]:
+        xml += f'<table:table table:name="{name}"><table:table-row><table:table-cell office:value-type="float" office:value="{value}"/></table:table-row></table:table>'
+    xml += '</office:spreadsheet></office:body></office:document-content>'
+    with ZipFile(path, "w") as z:
+        z.writestr("mimetype", "application/vnd.oasis.opendocument.spreadsheet")
+        z.writestr("content.xml", xml)
+    result = extract_spreadsheet(path)
+    assert [(s.name, s.values) for s in result.sheets] == [("Good", [[42]])]
+    assert result.requires_manual_review
+    assert "Bad" in result.warnings[0]
