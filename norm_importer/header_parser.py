@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
 
 from norm_importer.schema import ApplicabilityConditions
 
@@ -14,6 +14,7 @@ class ParsedCardHeader:
     calculation_formula: str
     result_unit: str
     applicability: ApplicabilityConditions
+    warnings: List[str] = field(default_factory=list)
 
 
 OPERATION_PATTERNS = [
@@ -29,14 +30,6 @@ TOOL_MATERIAL_PATTERN = re.compile(
     r"\b(Р6М5|Р18|Р9|Т5К10|Т15К6|Т30К4|ВК8|ВК6|ВК3М|CBN|эльбор|быстрорежущ\w+|тверд\w+\s+сплав\w*)\b",
     flags=re.IGNORECASE,
 )
-
-MATERIAL_PATTERNS = [
-    re.compile(
-        r"((?:сталь|чугун\s*(?:серый|ковкий|высокопрочный)?|алюмини\w*\s*сплав\w*|бронз\w*|латун\w*|титан\w*\s*сплав\w*)"
-        r"[^;\n\)]{0,45}?(?:HB|HRC|ГПа|МПа)?)",
-        flags=re.IGNORECASE,
-    )
-]
 
 EQUIPMENT_PATTERN = re.compile(
     r"([А-ЯЁа-яё\-]+\s*(?:сверлильн\w+|токарн\w+|фрезерн\w+|шлифовальн\w+|расточн\w+)\s*станк\w*)",
@@ -62,26 +55,102 @@ LD_RATIO_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 
-def extract_formula(lines: List[str]) -> str:
-    """Извлекает расчётную формулу карты из текстовых строк шапки."""
+CYRILLIC_VAR_REPLACEMENTS: List[Tuple[str, str]] = [
+    (r"\b[ТT]_?табл\.?\b", "Ttbl"),
+    (r"\b[ТT]_?шт\.?\b", "Tsht"),
+    (r"\b[ТT]_?оп\.?\b", "Top"),
+    (r"\b[ТT]_?вспом\.?\b", "Tvsp"),
+    (r"\b[ТT]_?осн\.?\b", "Tosn"),
+    (r"\b[ТT]_?ву\b", "Tvu"),
+    (r"\b[ТT]_?выд\b", "Tvid"),
+    (r"\b[КK]_?([а-яА-Яa-zA-Z0-9]+)\b", r"K_\1"),
+]
+
+
+def _normalize_formula_expression(raw_expr: str) -> str:
+    expr = raw_expr.strip().rstrip(".;")
+    expr = expr.replace("×", "*").replace("·", "*").replace(",", ".")
+    for pattern, repl in CYRILLIC_VAR_REPLACEMENTS:
+        expr = re.sub(pattern, repl, expr, flags=re.IGNORECASE)
+    return " ".join(expr.split())
+
+
+def extract_formula_with_diagnostics(lines: List[str]) -> Tuple[str, List[str]]:
+    """Извлекает расчётную формулу карты и диагностирует нераспознанные явные формулы."""
+    warnings: List[str] = []
     for line in lines:
         clean = " ".join(line.strip().split())
         if not clean:
             continue
 
-        # Ищем явные конструкции вида "Формула: T = ..." или "T_шт = ..."
+        has_formula_prefix = bool(re.search(r"\bформула(?:\s+расч[её]та)?\s*[:\-]", clean, flags=re.IGNORECASE))
         match = re.search(
             r"(?:формула(?:\s+расч[её]та)?\s*[:\-]?\s*)?"
-            r"\b(T(?:_[a-zA-Zа-яА-Я0-9]+|[а-яА-Яa-zA-Z0-9]*)|N_вр)\s*=\s*(.+)$",
+            r"(?<![A-Za-zА-Яа-яЁё0-9_])"
+            r"(?:[ТT](?:_[a-zA-Zа-яА-ЯёЁ0-9]+|[а-яА-ЯёЁa-zA-Z0-9]*)|[NН]_?вр)"
+            r"\s*=\s*(.+)$",
             clean,
             flags=re.IGNORECASE,
         )
         if match:
-            expr = match.group(2).strip().rstrip(".;")
-            expr = expr.replace("×", "*").replace("·", "*").replace(",", ".")
-            return expr
+            expr = _normalize_formula_expression(match.group(1))
+            if expr:
+                return expr, warnings
 
-    return "Ttbl"
+        if has_formula_prefix:
+            warnings.append(f"Не удалось распознать выражение в строке формулы: '{clean}'; использовано Ttbl.")
+
+    return "Ttbl", warnings
+
+
+def extract_formula(lines: List[str]) -> str:
+    """Извлекает расчётную формулу карты из текстовых строк шапки."""
+    formula, _ = extract_formula_with_diagnostics(lines)
+    return formula
+
+
+def detect_result_unit(lines: List[str], formula: str) -> Tuple[str, List[str]]:
+    """Определяет единицу измерения результата ('min', 'hour', 'pct') и проверяет противоречия."""
+    warnings: List[str] = []
+    detected_units: set[str] = set()
+
+    for line in lines:
+        clean = " ".join(line.strip().split())
+        if not clean:
+            continue
+
+        explicit_match = re.search(
+            r"(?:единиц[аы]\s+измерения|ед\.?\s*изм\.?|размерность)\s*[:\-]?\s*([а-яА-Яa-zA-Z%\-\.]+)",
+            clean,
+            flags=re.IGNORECASE,
+        )
+        if explicit_match:
+            token = explicit_match.group(1).strip().lower().rstrip(".")
+            if token in {"ч", "час", "часа", "часов", "нормо-час", "нормочас", "hour", "h"}:
+                detected_units.add("hour")
+            elif token in {"мин", "минута", "минуты", "минут", "min", "m"}:
+                detected_units.add("min")
+            elif token in {"%", "проц", "процент", "проценты", "pct"}:
+                detected_units.add("pct")
+            else:
+                warnings.append(f"Неизвестная единица измерения в шапке: '{explicit_match.group(1)}'.")
+
+        if re.search(r"нормо-?час", clean, flags=re.IGNORECASE):
+            detected_units.add("hour")
+
+    if len(detected_units) > 1:
+        warnings.append(f"Обнаружены противоречивые единицы измерения в шапке: {sorted(detected_units)}.")
+        unit = "hour" if "hour" in detected_units else "min"
+    elif len(detected_units) == 1:
+        unit = next(iter(detected_units))
+    else:
+        unit = "min"
+
+    if unit == "hour" and re.search(r"/\s*60\b", formula):
+        warnings.append("Возможный конфликт: единица измерения указана в часах, но формула содержит деление на 60.")
+
+    return unit, warnings
+
 
 def extract_surface_and_accuracy(text: str) -> Dict[str, Any]:
     """Извлекает параметры шероховатости (Ra/Rz), квалитет (IT), твёрдость и ограничения L/D."""
@@ -128,7 +197,7 @@ def parse_card_header(
 ) -> ParsedCardHeader:
     """
     Выполняет полный семантический разбор шапки нормировочной карты.
-    Возвращает card_id, card_title, формулу и структуру ApplicabilityConditions.
+    Возвращает card_id, card_title, формулу, единицу измерения и структуру ApplicabilityConditions.
     """
     non_empty = [" ".join(line.strip().split()) for line in lines if line and line.strip()]
     full_text = "\n".join(non_empty)
@@ -180,8 +249,8 @@ def parse_card_header(
 
     extra_params = extract_surface_and_accuracy(full_text)
 
-    formula = extract_formula(non_empty)
-    result_unit = "hour" if re.search(r"нормо-?час", full_text, flags=re.IGNORECASE) else "min"
+    formula, formula_warnings = extract_formula_with_diagnostics(non_empty)
+    result_unit, unit_warnings = detect_result_unit(non_empty, formula)
 
     applicability = ApplicabilityConditions(
         operation_type=operation_type,
@@ -198,4 +267,5 @@ def parse_card_header(
         calculation_formula=formula,
         result_unit=result_unit,
         applicability=applicability,
+        warnings=[*formula_warnings, *unit_warnings],
     )
