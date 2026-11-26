@@ -172,6 +172,8 @@ def ocr_document(path, **kwargs):
                 if not header_text:
                     warnings.append(f'Page {page.page_number} table {index}: no local header found')
                 header = parse_card_header(header_text,fallback_stem=Path(path).stem)
+                warnings.extend(f'Page {page.page_number} table {index}: {warning}'
+                                for warning in header.warnings)
                 if header.result_unit not in {'min', 'hour', 'pct'}:
                     raise ValueError(f'Unsupported result unit: {header.result_unit}')
                 result_unit = cast(Literal['min', 'hour', 'pct'], header.result_unit)

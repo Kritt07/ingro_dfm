@@ -40,6 +40,9 @@ from ingro_dfm.ui_reporting.inspector_app import IngroInspectorState
 from ingro_dfm.ui_reporting.report_exporter import export_all_reports
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
 @pytest.fixture
 def shaft_passport(tmp_path: Path) -> PartPassport:
     snap_path = tmp_path / "shaft_snap.json"
@@ -82,7 +85,7 @@ def test_pmi_and_tt_parsing() -> None:
 
 
 def test_migration_v1_to_v2_from_deployed_test_passport() -> None:
-    v1_path = Path(r"D:\Antihrafity\FW\Ingro\ingro_dfm\test_passport.json")
+    v1_path = REPO_ROOT / "test_passport.json"
     raw = json.loads(v1_path.read_text(encoding="utf-8-sig"))
     v2 = migrate_v1_to_v2(raw)
     assert v2.passport_version == "2.0"
@@ -274,7 +277,7 @@ def test_xlsx_loader_and_noisy_constrained_ridge(tmp_path: Path) -> None:
 
 
 def test_migrate_v1_file_and_cli_smoke(tmp_path: Path) -> None:
-    v1_path = Path(r"D:\Antihrafity\FW\Ingro\ingro_dfm\test_passport.json")
+    v1_path = REPO_ROOT / "test_passport.json"
     v2 = migrate_v1_file(v1_path)
     assert v2.passport_version == "2.0"
 
@@ -284,7 +287,10 @@ def test_migrate_v1_file_and_cli_smoke(tmp_path: Path) -> None:
     housing_snap.write_text(json.dumps(build_housing_cover_snapshot_dict(), ensure_ascii=False), encoding="utf-8")
 
     env = os.environ.copy()
-    env["PYTHONPATH"] = r"D:\Antihrafity\FW\Ingro"
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONPATH"] = os.pathsep.join(
+        [str(REPO_ROOT.parent), *filter(None, [env.get("PYTHONPATH", "")])]
+    )
 
     nx_out = tmp_path / "nx_out"
     res_nx = subprocess.run(
