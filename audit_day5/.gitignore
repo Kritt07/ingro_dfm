@@ -1,0 +1,9 @@
+# Generated audit inputs, logs, and conversion results.
+*.pdf
+*.ods
+*.log
+pytest*.txt
+b18_acceptance.txt
+photos_b18*.json
+photo_json/
+router_json/
