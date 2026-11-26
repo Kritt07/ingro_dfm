@@ -142,6 +142,8 @@ def _detect_condition(line: str, fallback_idx: int) -> Tuple[str, bool | str, Op
             matched_conditions.append(("l_to_d_custom", f"L{op}{val}D"))
 
     for pattern, key, val in TEXT_CONDITION_RULES:
+        if key.startswith("l_to_d_") and (ld_bilateral or ld_mult):
+            continue
         if re.search(pattern, lower, flags=re.IGNORECASE):
             if (key, val) not in matched_conditions:
                 matched_conditions.append((key, val))

@@ -63,7 +63,7 @@ CYRILLIC_VAR_REPLACEMENTS: List[Tuple[str, str]] = [
     (r"\b[ТT]_?осн\.?\b", "Tosn"),
     (r"\b[ТT]_?ву\b", "Tvu"),
     (r"\b[ТT]_?выд\b", "Tvid"),
-    (r"\b[КK]_?([а-яА-Яa-zA-Z0-9]+)\b", r"K_\1"),
+    (r"\bК([а-яА-Яa-zA-Z0-9_]+)\b", r"K\1"),
 ]
 
 

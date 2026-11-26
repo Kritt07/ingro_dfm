@@ -98,10 +98,12 @@ def _is_numeric_row_label(cell_text: str) -> bool:
 
 def _row_has_numeric_data(row: List[str]) -> bool:
     """Проверяет, есть ли в ячейках данных строки хотя бы одно числовое значение."""
-    for cell in row[1:]:
-        if re.search(r"\d", cell):
-            return True
-    return False
+    from norm_importer.schema import _parse_and_validate_cell
+    try:
+        values = [_parse_and_validate_cell(cell) for cell in row[1:]]
+        return any(value is not None for value in values)
+    except (ValueError, TypeError):
+        return False
 
 
 def map_raw_grid_to_table_grid(
@@ -179,14 +181,6 @@ def map_raw_grid_to_table_grid(
         for c in range(1, effective_cols + 1)
     ]
 
-    raw_leaf_headers = [padded_headers[-1][c] for c in range(1, effective_cols + 1)]
-    upper_headers = [
-        " / ".join(
-            dict.fromkeys(padded_headers[r][c] for r in range(len(padded_headers) - 1) if padded_headers[r][c])
-        )
-        for c in range(1, effective_cols + 1)
-    ]
-
     has_duplicate_leaves = len([x for x in raw_leaf_headers if x]) != len(set(x for x in raw_leaf_headers if x))
     cols_range: List[float | str] = []
     has_non_numeric_cols = False
@@ -231,7 +225,7 @@ def map_raw_grid_to_table_grid(
             fallback_label = f"row_{r_idx}"
             rows_range.append(fallback_label)
             warnings.append(
-                f"Строка данных {r_idx} не имеет метки оси; сохранена с меткой '{fallback_label}'."
+                f"Строка данных {r_idx}: неизвестная метка оси; сохранена с меткой '{fallback_label}'."
             )
         else:
             rows_range.append(_parse_axis_label(row_label, warnings, "строки"))
