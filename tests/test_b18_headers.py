@@ -19,3 +19,17 @@ def test_interval_header_does_not_collapse_to_lower_bound():
         ["D", "L ≤ 20", "20 < L ≤ 40"], ["3", "1", "2"]])
     assert grid.cols_range == ["L ≤ 20", "20 < L ≤ 40"]
     assert warnings
+
+
+def test_distinct_groups_with_unique_leaves_and_unlabelled_data_column():
+    grid, warnings = map_raw_grid_to_table_grid([
+        ["D", "Group A", "Group B", ""],
+        ["D", "10", "20", ""],
+        ["3", "1", "2", "3"],
+        [None, "4", "5", "6"],
+    ])
+    assert grid.cols_range[:2] == ["Group A | 10", "Group B | 20"]
+    assert len(grid.cols_range) == 3
+    assert len(grid.rows_range) == 2
+    assert grid.values_matrix == [[1., 2., 3.], [4., 5., 6.]]
+    assert warnings
