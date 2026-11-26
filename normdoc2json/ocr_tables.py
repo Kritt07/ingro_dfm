@@ -57,6 +57,24 @@ def detect_grid(image):
                 xs=_anchors([v for c in cells for v in (c[0],c[2])])
                 ys=_anchors([v for c in cells for v in (c[1],c[3])])
                 if len(xs)>=3 and len(ys)>=3:
+                    # A short break in one border can hide a cell from contour
+                    # detection. Recover only unoccupied slots supported by at
+                    # least three actual line segments; never split merged cells.
+                    for ya, yb in zip(ys, ys[1:]):
+                        for xa, xb in zip(xs, xs[1:]):
+                            if any(a <= (xa+xb)/2 <= c and b <= (ya+yb)/2 <= d
+                                   for a,b,c,d in cells):
+                                continue
+                            if min(xb-xa, yb-ya) < 10:
+                                continue
+                            edges = [lines[max(0,ya-5):ya+6,xa:xb],
+                                     lines[max(0,yb-5):yb+6,xa:xb],
+                                     lines[ya:yb,max(0,xa-5):xa+6],
+                                     lines[ya:yb,max(0,xb-5):xb+6]]
+                            support = [np.mean(np.any(e > 0, axis=0 if i < 2 else 1))
+                                       if e.size else 0 for i,e in enumerate(edges)]
+                            if sum(v > .7 for v in support) >= 3:
+                                cells.append((xa,ya,xb,yb))
                     regions.append(((x, y, x+w, y+h), cells))
     clean = image.copy()
     clean[cv2.dilate(lines,np.ones((3,3),np.uint8)) > 0] = 255
@@ -157,7 +175,30 @@ def cell_interior(image, box):
     return crop
 
 
-def recognize_cells(regions, image, engine):
+def clean_header_crop(crop):
+    """Remove isolated photo specks, retaining punctuation near the text band."""
+    result = crop.copy()
+    _, labels, stats, _ = cv2.connectedComponentsWithStats((crop < 128).astype(np.uint8))
+    h, w = crop.shape
+    components = [(i, s) for i, s in enumerate(stats[1:], 1)
+                  if s[4] >= 12 and s[3] >= 8 and s[2] < w * .8
+                  and not (s[3] > h * .7 and s[2] < 5)]
+    if not components:
+        return result
+    typical = float(np.percentile([s[3] for _, s in components], 80))
+    letters = [s for _, s in components if s[3] >= typical * .65]
+    top = min(s[1] for s in letters)
+    bottom = max(s[1] + s[3] for s in letters)
+    for i, (x, y, cw, ch, area) in enumerate(stats[1:], 1):
+        edge = (ch > h * .7 and cw < 5) or (cw > w * .8 and ch < 5)
+        speck = area < max(3, typical * typical * .012)
+        outside = y + ch < top - typical * .15 or y > bottom + typical * .15
+        if edge or speck or outside:
+            result[labels == i] = 255
+    return result
+
+
+def recognize_cells(regions, image, engine, *, text_image=None):
     """OCR a packed strip of cell interiors in one engine call, retaining coordinates."""
     patches=[]
     header_words=[]
@@ -168,8 +209,9 @@ def recognize_cells(regions, image, engine):
             crop=cell_interior(image,(x0,y0,x1,y1))
             if not crop.size:
                 continue
-            if y0 < header_bottom and crop.shape[1]>350 and min(crop.shape)>=7:
-                crop=cv2.medianBlur(crop,7)
+            if y0 < header_bottom:
+                original_crop = crop.copy()
+                crop = clean_header_crop(crop)
             ink=np.argwhere(crop<128)
             if len(ink)<8:
                 continue
@@ -177,16 +219,54 @@ def recognize_cells(regions, image, engine):
             patch=crop[top:bottom,left:right]
             if y0 < header_bottom:
                 # Keep multi-line header resolution; do not mix its lines with other cells.
+                # Normalise glyph size, not cell size: photos can contain very large
+                # letters after perspective correction and DPI resampling.
+                _, _, stats, _ = cv2.connectedComponentsWithStats((patch < 128).astype(np.uint8))
+                heights = [h for x, y, w, h, area in stats[1:]
+                           if h >= 8 and w >= 2 and area >= 12 and w < patch.shape[1] * .8]
+                scale = min(2., max(.2, 48 / float(np.percentile(heights, 80)))) if heights else 1.
+                patch = cv2.resize(patch, None, fx=scale, fy=scale,
+                                   interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_CUBIC)
                 padded=np.pad(patch,20,constant_values=255)
                 recognized_header=engine.recognize(padded,psm=6)
                 if not recognized_header:
                     recognized_header=engine.recognize(padded,psm=7)
+                if text_image is not None:
+                    # Local Otsu sees the original tonal information rather than
+                    # the adaptive mask used to detect table borders.
+                    inset = max(3, round(min(x1-x0, y1-y0) * .08))
+                    gray = text_image[y0+inset:y1-inset, x0+inset:x1-inset]
+                    local = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
+                    local_words = engine.recognize(np.pad(local, 20, constant_values=255), psm=6)
+                    if local_words:
+                        recognized_header = local_words
+                        top, left, scale = inset, inset, 1.
+                # Compare independent image preparations; do not silently replace
+                # a good baseline by a failed cleanup or resampling result.
+                baseline = original_crop
+                if baseline.shape[1] > 350 and min(baseline.shape) >= 7:
+                    baseline = cv2.medianBlur(baseline, 7)
+                points = np.argwhere(baseline < 128)
+                disagreement = False
+                if len(points) >= 8:
+                    bt, bl = points.min(0)
+                    bb, br = points.max(0) + 1
+                    baseline_words = engine.recognize(np.pad(baseline[bt:bb, bl:br], 20,
+                                                            constant_values=255), psm=6)
+                    disagreement = (' '.join(w.text for w in baseline_words) !=
+                                    ' '.join(w.text for w in recognized_header))
+                    def score(words):
+                        count = sum(len(w.text) for w in words)
+                        return sum(w.confidence * len(w.text) for w in words) / max(1, count)
+                    if score(baseline_words) >= score(recognized_header):
+                        recognized_header = baseline_words
+                        top, left, scale = bt, bl, 1.
                 for word in recognized_header:
                     a,b,c,d=word.bbox
                     header_words.append(OCRWord(word.text,
-                        (int(x0+margin+left+a-20),int(y0+margin+top+b-20),
-                         int(x0+margin+left+c-20),int(y0+margin+top+d-20)),
-                        word.confidence,word.line))
+                        (round(x0+left+(a-20)/scale),round(y0+top+(b-20)/scale),
+                         round(x0+left+(c-20)/scale),round(y0+top+(d-20)/scale)),
+                        min(word.confidence, .79) if disagreement else word.confidence,word.line))
                 continue
             scale=min(1.,60/patch.shape[0])
             patch=cv2.resize(patch,None,fx=scale,fy=scale)
