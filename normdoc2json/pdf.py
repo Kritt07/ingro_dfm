@@ -75,14 +75,17 @@ def _extract_tables(page, number):
                             values[rr][cc] = values[r][c]
                             boxes[rr][cc] = box
         tables.append(PDFTable(number, tuple(source.bbox), values, boxes, merged, method))
+    tables.extend(_borderless_tables(page, number, [t.bbox for t in tables]))
     return tables
 
 
 
-def _borderless_tables(page, number):
+def _borderless_tables(page, number, excluded=()):
     """Восстановить простые таблицы по повторяющимся позициям текста."""
     lines = {}
     for word in page.get_text('words'):
+        if any(pymupdf.Rect(box).intersects(pymupdf.Rect(word[:4])) for box in excluded):
+            continue
         lines.setdefault((word[5], word[6]), []).append(word)
     # PDF может хранить каждую ячейку отдельной строкой: группируем по высоте.
     bands = []

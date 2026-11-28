@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import math
 import re
 from enum import Enum
 from typing import Any, List, Literal, Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 RANGE_PATTERN = re.compile(r"^\s*([+-]?\d+(?:\.\d+)?)\s*[-–—]\s*([+-]?\d+(?:\.\d+)?)\s*$")
+
+
+def _ensure_finite_float(value: float, context: str = "числовое значение") -> float:
+    if not math.isfinite(value):
+        raise ValueError(f"Недопустимое нечисловое или бесконечное {context}: {value}")
+    return value
 
 
 class SourceFormat(str, Enum):
@@ -59,16 +66,21 @@ class ApplicabilityConditions(BaseModel):
 
 CellValue = Union[float, List[float], None]
 
+
 def _parse_and_validate_cell(cell: Any) -> CellValue:
     if cell is None:
         return None
+    if isinstance(cell, bool):
+        raise ValueError(f"Булево значение недопустимо в ячейке таблицы: {cell}")
     if isinstance(cell, (int, float)):
-        return float(cell)
+        return _ensure_finite_float(float(cell), "значение ячейки")
     if isinstance(cell, list):
         if len(cell) != 2:
             raise ValueError(f"Диапазон в ячейке должен содержать ровно 2 границы, получено {len(cell)}: {cell}")
-        low = float(cell[0])
-        high = float(cell[1])
+        if isinstance(cell[0], bool) or isinstance(cell[1], bool):
+            raise ValueError(f"Булево значение недопустимо в границах диапазона: {cell}")
+        low = _ensure_finite_float(float(cell[0]), "нижняя граница диапазона")
+        high = _ensure_finite_float(float(cell[1]), "верхняя граница диапазона")
         if low > high:
             raise ValueError(f"Обратный порядок границ диапазона: {low} > {high}")
         return [low, high]
@@ -80,15 +92,14 @@ def _parse_and_validate_cell(cell: Any) -> CellValue:
 
         range_match = RANGE_PATTERN.match(cleaned)
         if range_match:
-            low = float(range_match.group(1))
-            high = float(range_match.group(2))
+            low = _ensure_finite_float(float(range_match.group(1)), "нижняя граница диапазона")
+            high = _ensure_finite_float(float(range_match.group(2)), "верхняя граница диапазона")
             if low > high:
                 raise ValueError(f"Обратный порядок границ диапазона: {low} > {high}")
             return [low, high]
 
-        return float(cleaned)
+        return _ensure_finite_float(float(cleaned), "значение ячейки")
     raise ValueError(f"Неподдерживаемый тип значения ячейки: {type(cell)}")
-
 
 
 class TableGrid(BaseModel):
@@ -99,6 +110,17 @@ class TableGrid(BaseModel):
     rows_range: List[Union[float, str]] = Field(..., min_length=1, description="Границы интервалов строк")
     cols_range: List[Union[float, str]] = Field(default_factory=list, description="Границы интервалов столбцов")
     values_matrix: List[List[CellValue]] = Field(..., min_length=1, description="Матрица нормативных значений")
+
+    @field_validator("rows_range", "cols_range")
+    @classmethod
+    def validate_axis_ranges(cls, items: List[Union[float, str]]) -> List[Union[float, str]]:
+        validated: List[Union[float, str]] = []
+        for item in items:
+            if isinstance(item, float):
+                validated.append(_ensure_finite_float(item, "граница оси"))
+            else:
+                validated.append(item)
+        return validated
 
     @field_validator("values_matrix", mode="before")
     @classmethod
@@ -139,6 +161,11 @@ class NoteCoefficientRule(BaseModel):
     modifier_operation: ModifierOperation = Field(default=ModifierOperation.MULTIPLY)
     target_variable: str = Field(default="Ttbl", description="Целевая переменная формулы")
     factor: float = Field(..., description="Числовой коэффициент или поправка")
+
+    @field_validator("factor")
+    @classmethod
+    def validate_factor(cls, val: float) -> float:
+        return _ensure_finite_float(val, "коэффициент примечания")
 
 
 class NormCard(BaseModel):

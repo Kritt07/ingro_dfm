@@ -1,0 +1,42 @@
+{
+  "ods_dates": {
+    "values": [
+      [
+        null,
+        null
+      ]
+    ],
+    "warnings": [],
+    "expected": [
+      "2026-11-25",
+      "PT1H30M"
+    ]
+  },
+  "ods_sheet_isolation": "Cannot extract C:\\Learning\\3 семестр\\Ингро\\ingro_dfm\\audit_day5\\partial.ods: could not convert string to float: 'broken'",
+  "pdf_side_by_side": {
+    "count": 1,
+    "values": [
+      [
+        [
+          "10",
+          "20",
+          "30",
+          "40"
+        ],
+        [
+          "10",
+          "20",
+          "30",
+          "40"
+        ],
+        [
+          "10",
+          "20",
+          "30",
+          "40"
+        ]
+      ]
+    ],
+    "expected_count": 2
+  }
+}

@@ -13,6 +13,7 @@ from .preprocessing import preprocess_page
 from .ocr_engine import TesseractEngine, OCRWord
 from .ocr_tables import OCRTable, detect_grid, reconstruct_tables, recognize_cells
 from .rectification import rectify_table_plane
+from .table_context import assign_table_context, ocr_text_lines
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,8 @@ def iter_ocr_pages(path, *, lang='rus+eng', engine=None, debug_dir=None,
                 words=list(outside)
                 for number,region in enumerate(regions,1):
                     try:
-                        cell_words=recognize_cells([region],prepared.image,engine)
+                        cell_words=recognize_cells([region],prepared.image,engine,
+                                                   text_image=prepared.grayscale)
                         tables,unassigned,notes=reconstruct_tables([region],cell_words,clean)
                         result.tables.extend(tables)
                         result.blocks.extend(unassigned)
@@ -118,20 +120,12 @@ def iter_ocr_pages(path, *, lang='rus+eng', engine=None, debug_dir=None,
         yield result
 
 
-def table_header_lines(page, table):
-    """Select spatially preceding text, bounded by previous tables/card titles."""
-    x0,y0,x1,_=table.bbox
-    previous=max((t.bbox[3] for t in page.tables if t is not table
-                  and t.bbox[3]<=y0 and min(x1,t.bbox[2])>max(x0,t.bbox[0])),default=0)
-    lines={}
-    for word in page.blocks:
-        a,b,c,d=word.bbox
-        if previous<=b and d<=y0 and x0<=(a+c)/2<=x1:
-            lines.setdefault(word.line,[]).append(word)
-    ordered=sorted(lines.values(),key=lambda group:min(w.bbox[1] for w in group))
-    text=[' '.join(w.text for w in sorted(group,key=lambda w:w.bbox[0])) for group in ordered]
-    titles=[i for i,line in enumerate(text) if re.search(r'\bКарта\s*(?:№\s*)?\d',line,re.I)]
-    return text[titles[-1]:] if titles else text
+def table_header_lines(page, table, contexts=None):
+    """Select the header owned by this table, excluding preceding-table notes."""
+    if contexts is None:
+        contexts, _ = assign_table_context(page.tables, ocr_text_lines(page.blocks))
+    return next((context.header_lines for candidate, context in zip(page.tables, contexts)
+                 if candidate is table), [])
 
 
 def ocr_document(path, **kwargs):
@@ -144,12 +138,8 @@ def ocr_document(path, **kwargs):
         warnings.extend(f'Page {page.page_number}: {w}' for w in page.warnings)
         if page.confidence is not None:
             confidences.append(page.confidence)
-        # Keep text by OCR line rather than passing each word as a header.
-        lines = {}
-        for word in page.blocks:
-            lines.setdefault(word.line,[]).append(word)
-        text = [' '.join(w.text for w in sorted(group,key=lambda w:w.bbox[0]))
-                for group in lines.values()]
+        contexts, context_warnings = assign_table_context(page.tables, ocr_text_lines(page.blocks))
+        warnings.extend(f'Page {page.page_number}: {w}' for w in context_warnings)
         for index, table in enumerate(page.tables,1):
             try:
                 raw_grid=[list(row) for row in table.values]
@@ -166,12 +156,14 @@ def ocr_document(path, **kwargs):
                             warnings.append(f'Page {page.page_number} table {index} R{r+1}C{c+1}: '
                                             f'unrecognized numeric cell {row[c]!r}; stored null')
                             row[c]=None
-                grid, notes = map_raw_grid_to_table_grid(raw_grid)
+                grid, notes = map_raw_grid_to_table_grid(raw_grid, merged_ranges=table.merged_ranges)
                 warnings.extend(f'Page {page.page_number} table {index}: {n}' for n in notes)
-                header_text=table_header_lines(page,table)
+                header_text=table_header_lines(page,table,contexts)
                 if not header_text:
                     warnings.append(f'Page {page.page_number} table {index}: no local header found')
                 header = parse_card_header(header_text,fallback_stem=Path(path).stem)
+                warnings.extend(f'Page {page.page_number} table {index}: {warning}'
+                                for warning in header.warnings)
                 if header.result_unit not in {'min', 'hour', 'pct'}:
                     raise ValueError(f'Unsupported result unit: {header.result_unit}')
                 result_unit = cast(Literal['min', 'hour', 'pct'], header.result_unit)
@@ -179,9 +171,10 @@ def ocr_document(path, **kwargs):
                     card_title=header.card_title,applicability_conditions=header.applicability,
                     calculation_formula=header.calculation_formula,result_unit=result_unit,
                     table_grid=grid))
-                if text:
+                local_text = contexts[index - 1].header_lines + contexts[index - 1].note_lines
+                if local_text:
                     warnings.append(f'Page {page.page_number} table {index}: surrounding text requires '
-                                    'semantic review (notes parser handoff): ' + ' | '.join(text))
+                                    'semantic review (notes parser handoff): ' + ' | '.join(local_text))
             except Exception as exc:
                 warnings.append(f'Page {page.page_number} table {index}: semantic conversion failed: {exc}')
     if not cards:

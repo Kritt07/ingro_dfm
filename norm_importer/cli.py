@@ -1,14 +1,13 @@
 from pathlib import Path
-from typing import List, Optional, Tuple
-import typer
+from typing import Any, List, Optional, Tuple
 import csv
 import re
+import typer
 
 from norm_importer.logger import setup_logger
 from norm_importer.grid_mapper import map_raw_grid_to_table_grid
 from norm_importer.office_parser import OFFICE_EXTENSIONS, parse_office_file
 from norm_importer.header_parser import parse_card_header
-from norm_importer.notes_parser import parse_notes_to_rules
 from norm_importer.notes_parser import parse_notes_with_diagnostics
 from norm_importer.schema import (
     ApplicabilityConditions,
@@ -33,6 +32,7 @@ SUPPORTED_EXTENSIONS = {
 
 SPREADSHEET_EXTENSIONS = {".xlsx", ".xls", ".csv", ".ods"}
 
+
 def _split_sheet_preamble_and_table(rows: List[List[str]]) -> Tuple[List[str], List[List[str]]]:
     """
     Отделяет верхние строки метаданных листа Excel (заголовок карты, формула, материал)
@@ -53,6 +53,7 @@ def _split_sheet_preamble_and_table(rows: List[List[str]]) -> Tuple[List[str], L
             break
 
     return preamble, rows[table_start:]
+
 
 def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
     """Извлекает таблицы из .xlsx / .xls / .csv / .ods через normdoc2json.spreadsheets или fallback."""
@@ -108,6 +109,9 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
             preamble_lines, table_rows, footer_notes = _split_sheet_sections(grid)
             header_context = [sheet_title, *preamble_lines, file_path.stem]
             parsed_header = parse_card_header(header_context, fallback_stem=file_path.stem, card_index=idx)
+            warnings.extend(parsed_header.warnings)
+            if parsed_header.warnings:
+                requires_manual_review = True
 
             rules, note_warnings = parse_notes_with_diagnostics(
                 [*preamble_lines, *footer_notes],
@@ -164,6 +168,7 @@ def _parse_spreadsheet_file(file_path: Path) -> NormDocDocument:
         cards=cards,
     )
 
+
 def _is_numeric_axis_cell(text: str) -> bool:
     """Проверяет, является ли ячейка значением числовой оси (число, интервал или 'св. 2500')."""
     return bool(re.match(r"^(?:св\.?\s*|до\s*)?[+-]?\d+(?:[.,]\d+)?", text.strip(), flags=re.IGNORECASE))
@@ -212,13 +217,24 @@ def _split_sheet_sections(rows: List[List[str]]) -> Tuple[List[str], List[List[s
     return preamble, table_rows, footer_notes
 
 
+def _is_ignored_debug_path(path: Path, root: Path) -> bool:
+    """Проверяет, находится ли файл внутри служебного каталога *.debug или скрытой директории (B17)."""
+    try:
+        rel_parts = path.relative_to(root).parts[:-1]
+    except ValueError:
+        rel_parts = path.parts[:-1]
+    return any(part.endswith(".debug") or part.startswith(".") for part in rel_parts)
+
+
 def collect_input_files(input_path: Path) -> List[Path]:
     if input_path.is_file():
         return [input_path]
     if input_path.is_dir():
         return sorted(
             p for p in input_path.rglob("*")
-            if p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
+            if p.is_file()
+            and p.suffix.lower() in SUPPORTED_EXTENSIONS
+            and not _is_ignored_debug_path(p, input_path)
         )
     return []
 
@@ -265,18 +281,183 @@ def _detect_format_via_router(file_path: Path) -> SourceFormat:
     return mapping.get(ext, SourceFormat.IMAGE)
 
 
+def _extract_grid_from_pdf_table(table_obj: Any) -> List[List[str]]:
+    """Извлекает двумерную матрицу строк из объекта таблицы extract_pdf."""
+    if isinstance(table_obj, list):
+        return [["" if c is None else str(c) for c in row] for row in table_obj]
+    for attr in ("rows", "values", "cells", "data", "grid"):
+        raw = getattr(table_obj, attr, None)
+        if isinstance(raw, list) and raw:
+            return [["" if c is None else str(c) for c in row] for row in raw]
+    return []
+
+def _parse_vector_pdf_file(file_path: Path, detected_format: SourceFormat) -> NormDocDocument:
+    """Подключение экстрактора векторных PDF (normdoc2json.pdf.extract_pdf) к разбору карт (B10)."""
+    warnings: List[str] = []
+    requires_manual_review = False
+    cards: List[NormCard] = []
+
+    try:
+        from normdoc2json.pdf import extract_pdf
+        from normdoc2json.table_context import assign_table_context
+        pdf_res = extract_pdf(file_path)
+        warnings.extend(getattr(pdf_res, "warnings", []))
+
+        pages = getattr(pdf_res, "pages", []) or []
+        card_counter = 0
+
+        for p_idx, page in enumerate(pages, start=1):
+            page_num = getattr(page, "page_number", p_idx)
+            blocks = sorted(
+                getattr(page, "blocks", []) or [],
+                key=lambda b: (getattr(b, "bbox", (0, 0, 0, 0))[1], getattr(b, "bbox", (0, 0, 0, 0))[0]),
+            )
+            tables = sorted(
+                getattr(page, "tables", []) or [],
+                key=lambda t: getattr(t, "bbox", (0, 0, 0, 0))[1],
+            )
+            contexts, context_warnings = assign_table_context(tables, blocks)
+            warnings.extend(f'Page {page_num}: {warning}' for warning in context_warnings)
+            if context_warnings:
+                requires_manual_review = True
+
+            for t_idx, tbl in enumerate(tables):
+                card_counter += 1
+                grid = _extract_grid_from_pdf_table(tbl)
+                if not grid:
+                    continue
+
+                header_lines = contexts[t_idx].header_lines
+                note_lines = contexts[t_idx].note_lines
+
+                try:
+                    parsed_header = parse_card_header(
+                        [*header_lines, file_path.stem],
+                        fallback_stem=file_path.stem,
+                        card_index=card_counter,
+                    )
+                    warnings.extend(parsed_header.warnings)
+                    if parsed_header.warnings:
+                        requires_manual_review = True
+
+                    rules, note_warnings = parse_notes_with_diagnostics(
+                        [*header_lines, *note_lines],
+                        result_unit=parsed_header.result_unit,
+                    )
+                    warnings.extend(note_warnings)
+                    if note_warnings:
+                        requires_manual_review = True
+
+                    table_grid, grid_warnings = map_raw_grid_to_table_grid(
+                        grid, merged_ranges=getattr(tbl, 'merged_ranges', None))
+                    warnings.extend(grid_warnings)
+                    if grid_warnings:
+                        requires_manual_review = True
+
+                    card_id = parsed_header.card_id
+                    if any(c.card_id == card_id for c in cards):
+                        card_id = f"{card_id}_{card_counter:02d}"
+
+                    cards.append(
+                        NormCard(
+                            card_id=card_id,
+                            card_title=parsed_header.card_title,
+                            applicability_conditions=parsed_header.applicability,
+                            calculation_formula=parsed_header.calculation_formula,
+                            result_unit=parsed_header.result_unit,
+                            table_grid=table_grid,
+                            notes_and_coefficients=rules,
+                        )
+                    )
+                except Exception as exc:
+                    requires_manual_review = True
+                    warnings.append(f"Таблица {card_counter} (стр. {page_num}) в PDF пропущена: {exc}")
+    except Exception as exc:
+        requires_manual_review = True
+        warnings.append(f"Ошибка извлечения PDF {file_path.name}: {exc}")
+
+    if not cards:
+        requires_manual_review = True
+        warnings.append(f"В PDF {file_path.name} не удалось извлечь таблицы; создана карточка-заглушка.")
+        cards.append(
+            NormCard(
+                card_id=f"{file_path.stem.upper()}_EMPTY_01",
+                card_title=f"Заготовка карты из {file_path.name}",
+                applicability_conditions=ApplicabilityConditions(operation_type="Не определено"),
+                calculation_formula="Ttbl",
+                table_grid=TableGrid(
+                    row_param_name="unknown",
+                    rows_range=["stub"],
+                    cols_range=["stub"],
+                    values_matrix=[[None]],
+                ),
+            )
+        )
+
+    return NormDocDocument(
+        source_metadata=SourceMetadata(
+            source_file=file_path.name,
+            source_format=detected_format,
+            page_number=1,
+            extraction_method="normdoc2json.pdf",
+            requires_manual_review=requires_manual_review,
+            warnings=warnings,
+        ),
+        cards=cards,
+    )
+
+
+def _enrich_ocr_document_notes(doc: NormDocDocument) -> NormDocDocument:
+    """Подключает парсер коэффициентов и примечаний к окружающему тексту OCR (I01)."""
+    handoff_re = re.compile(
+        r"^Page\s+(\d+)\s+table\s+(\d+):\s+surrounding text requires semantic review \(notes parser handoff\):\s*(.+)$",
+        flags=re.IGNORECASE,
+    )
+    per_table_lines: dict[str, List[str]] = {}
+
+    for w in doc.source_metadata.warnings:
+        match = handoff_re.match(w.strip())
+        if match:
+            page_num, tbl_idx, raw_blob = match.groups()
+            key = f"_P{page_num}_T{tbl_idx}"
+            segments = [seg.strip() for seg in raw_blob.split(" | ") if seg.strip()]
+            per_table_lines.setdefault(key, []).extend(segments)
+
+    if not per_table_lines:
+        return doc
+
+    for card in doc.cards:
+        if card.notes_and_coefficients:
+            continue
+        matched_lines = next(
+            (lines for suffix, lines in per_table_lines.items() if card.card_id.endswith(suffix)),
+            [],
+        )
+        if not matched_lines:
+            continue
+        rules, note_warnings = parse_notes_with_diagnostics(
+            matched_lines,
+            result_unit=card.result_unit,
+        )
+        if rules:
+            card.notes_and_coefficients.extend(rules)
+        if note_warnings:
+            doc.source_metadata.warnings.extend(note_warnings)
+            doc.source_metadata.requires_manual_review = True
+
+    return doc
+
+
 def process_single_file(
     file_path: Path,
     ocr_lang: str,
     debug_images: bool,
     logger,
 ) -> NormDocDocument:
-    """Маршрутизация файла по экстракторам Дней 2–5."""
+    """Маршрутизация файла по экстракторам Дней 2–6."""
     logger.info(f"Начало обработки файла: {file_path.name} (ocr_lang={ocr_lang}, debug={debug_images})")
     ext = file_path.suffix.lower()
 
-    if ext in OFFICE_EXTENSIONS:
-        return parse_office_file(file_path)
     if ext in OFFICE_EXTENSIONS:
         return parse_office_file(file_path)
     if ext in SPREADSHEET_EXTENSIONS:
@@ -284,11 +465,24 @@ def process_single_file(
 
     detected_format = _detect_format_via_router(file_path)
 
-    if detected_format in {SourceFormat.PDF_SCANNED, SourceFormat.PDF_HYBRID,
-                            SourceFormat.IMAGE, SourceFormat.TIFF}:
+    if detected_format in {
+        SourceFormat.PDF_SCANNED,
+        SourceFormat.PDF_HYBRID,
+        SourceFormat.IMAGE,
+        SourceFormat.TIFF,
+    }:
         from normdoc2json import ocr_document
-        return ocr_document(file_path, lang=ocr_lang,
-                            debug_dir=file_path.parent / (file_path.name + '.debug') if debug_images else None)
+        debug_dir = (
+            file_path.parent / f"{file_path.name}.debug"
+            if debug_images
+            else None
+        )
+        doc = ocr_document(file_path, lang=ocr_lang, debug_dir=debug_dir)
+        return _enrich_ocr_document_notes(doc)
+
+    if detected_format == SourceFormat.PDF_VECTOR or ext == ".pdf":
+        return _parse_vector_pdf_file(file_path, detected_format)
+
 
     return NormDocDocument(
         source_metadata=SourceMetadata(
@@ -297,7 +491,7 @@ def process_single_file(
             page_number=1,
             extraction_method="router_integrated_stub",
             requires_manual_review=True,
-            warnings=[f"Экстрактор для формата {detected_format.value} ожидает подключения в следующем этапе"],
+            warnings=[f"Экстрактор для формата {detected_format.value} не подключён"],
         ),
         cards=[
             NormCard(
@@ -314,8 +508,6 @@ def process_single_file(
             )
         ],
     )
-
-
 @app.command()
 def convert(
     input_path: Path = typer.Option(
