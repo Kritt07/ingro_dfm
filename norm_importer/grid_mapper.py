@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 from norm_importer.schema import AxisCondition, TableGrid
 
 AXIS_KEYWORDS: List[Tuple[str, str]] = [
-    (r"диаметр|\bD\b|Ø", "diameter_d_mm"),
+    (r"диаметр|\bD\b|[Ø∅⌀]", "diameter_d_mm"),
     (r"длин|глубин|\bL\b|\bH\b", "length_l_mm"),
     (r"припуск|подач|\bt\b|\bS\b", "allowance_t_mm"),
     (r"ширин|\bB\b", "width_b_mm"),
@@ -21,7 +21,7 @@ INTERVAL_PATTERN = re.compile(
 )
 
 SINGLE_NUMBER_PATTERN = re.compile(
-    r"^\s*(?:(?:до|св\.?|свыше|не\s+более|≤|>=|<|>)\s*)?([+-]?\d+(?:[.,]\d+)?)\s*$",
+    r"^\s*(?:(?:до|св\.?|свыше|не\s+более|≤|<=|>)\s*)?([+-]?\d+(?:[.,]\d+)?)\s*$",
     flags=re.IGNORECASE,
 )
 
@@ -58,18 +58,24 @@ def detect_axis_semantics(header_text: str, default_name: str) -> Tuple[str, Axi
 def _parse_axis_label(label: str, warnings: List[str], axis_kind: str) -> float | str:
     """Разбирает метку оси: одиночное число -> float, интервалы '5–10' и '20 < L ≤ 40' -> строка + диагностика."""
     cleaned = label.strip()
-    if INTERVAL_PATTERN.match(cleaned) or BILATERAL_RANGE_PATTERN.match(cleaned):
+    if _is_interval_label(cleaned):
         warnings.append(
             f"Интервал на оси ({axis_kind}) '{cleaned}' сохранён как строковая метка без потери верхней границы."
         )
+        return cleaned
+
+    # The schema can express <= and >, but cannot express < or >=. Keep
+    # these conditions in the label rather than changing their inclusivity.
+    if re.search(r"(?<!<)<(?![=])|≥|>=|(?<![<>])=", cleaned.replace("<=", "≤")):
+        warnings.append(f"Условие оси ({axis_kind}) '{cleaned}' сохранено без изменения границы.")
         return cleaned
 
     single_match = SINGLE_NUMBER_PATTERN.match(cleaned)
     if single_match:
         return float(single_match.group(1).replace(",", "."))
 
-    prefixed_match = re.search(
-        r"(?:^|\s)(?:[A-Za-zА-Яа-яЁё]+\s+)?(?:до|св\.?|свыше|≤|>=|<|>)\s*([+-]?\d+(?:[.,]\d+)?)\s*(?:мм|см|м|кг)?\s*$",
+    prefixed_match = re.fullmatch(
+        r"(?:[A-Za-zА-Яа-яЁё]+\s*)?(?:до|св\.?|свыше|не\s+более|≤|<=|>)\s*([+-]?\d+(?:[.,]\d+)?)\s*(?:мм|см|м|кг)?",
         cleaned,
         flags=re.IGNORECASE,
     )
@@ -77,6 +83,42 @@ def _parse_axis_label(label: str, warnings: List[str], axis_kind: str) -> float 
         return float(prefixed_match.group(1).replace(",", "."))
 
     return cleaned
+
+
+def _is_interval_label(label: str) -> bool:
+    """Never reduce a two-bound condition to its final numeric suffix."""
+    return bool(INTERVAL_PATTERN.fullmatch(label) or BILATERAL_RANGE_PATTERN.fullmatch(label)
+                or (len(re.findall(r"[+-]?\d+(?:[.,]\d+)?", label)) > 1
+                    and re.search(r"[<>≤≥]|\bдо\b|\bот\b|\bсв\.?(?=\s*\d)|\bсвыше\b", label, re.I)))
+
+
+def _explicit_conditions(labels):
+    conditions = set()
+    for label in labels:
+        if re.search(r"\bдо\b|не\s+(?:более|свыше)|≤|<=", label, re.I):
+            conditions.add(AxisCondition.UP_TO)
+        positive = re.sub(r"не\s+(?:более|свыше)", "", label, flags=re.I)
+        if re.search(r"\bсв\.?(?=\s*\d|\s*$)|\bсвыше\b|>(?!=)", positive, re.I):
+            conditions.add(AxisCondition.OVER)
+    return conditions
+
+
+def _expand_merged_cells(grid, merged_ranges):
+    """Apply explicit spans before locating the data rows (1-based inclusive)."""
+    width = max((len(row) for row in grid), default=0)
+    expanded = [list(row) + [""] * (width - len(row)) for row in grid]
+    for r0, c0, r1, c1 in merged_ranges:
+        if not (1 <= r0 <= r1 <= len(expanded) and 1 <= c0 <= c1 <= width):
+            raise ValueError(f"Некорректное объединение ячеек: {(r0, c0, r1, c1)}")
+        values = {expanded[r][c] for r in range(r0 - 1, r1)
+                  for c in range(c0 - 1, c1) if expanded[r][c]}
+        if len(values) > 1:
+            raise ValueError(f"Противоречивый текст в объединении: {(r0, c0, r1, c1)}")
+        value = next(iter(values), "")
+        for r in range(r0 - 1, r1):
+            for c in range(c0 - 1, c1):
+                expanded[r][c] = value
+    return expanded
 
 def extract_numeric_tokens(cells: List[str]) -> List[float]:
     """Извлекает числовые границы диапазонов из списка ячеек."""
@@ -110,6 +152,8 @@ def map_raw_grid_to_table_grid(
     raw_grid: List[List[str]],
     default_row_param: str = "row_param",
     default_col_param: str = "col_param",
+    *,
+    merged_ranges: Optional[List[Tuple[int, int, int, int]]] = None,
 ) -> Tuple[TableGrid, List[str]]:
     """
     Преобразует сырую двумерную сетку ячеек (с многоуровневой шапкой)
@@ -119,8 +163,10 @@ def map_raw_grid_to_table_grid(
     cleaned_grid = [
         [_cell_to_clean_str(c) for c in row]
         for row in raw_grid
-        if any(_cell_to_clean_str(c) != "" for c in row)
     ]
+    if merged_ranges is not None:
+        cleaned_grid = _expand_merged_cells(cleaned_grid, merged_ranges)
+    cleaned_grid = [row for row in cleaned_grid if any(row)]
 
     if len(cleaned_grid) < 2 or len(cleaned_grid[0]) < 2:
         raise ValueError("Сырая таблица должна содержать минимум 2 строки и 2 столбца.")
@@ -140,11 +186,26 @@ def map_raw_grid_to_table_grid(
 
     left_header_text = " ".join(h[0] for h in header_rows if h[0])
     top_header_text = " ".join(
-        cell for h in header_rows[:-1] for cell in h[1:] if cell
+        cell for h in header_rows for cell in h[1:] if cell
     ) or " ".join(header_rows[0][1:])
 
     row_param_name, row_condition = detect_axis_semantics(left_header_text, default_row_param)
     col_param_name, col_condition = detect_axis_semantics(top_header_text, default_col_param)
+    for text, default, axis in (
+        (left_header_text, default_row_param, "строки"),
+        (top_header_text, default_col_param, "столбцы"),
+    ):
+        detected = {name for pattern, name in AXIS_KEYWORDS if re.search(pattern, text, re.I)}
+        if not detected:
+            warnings.append(f"Не определён параметр оси ({axis}) по шапке {text!r}; "
+                            f"использовано резервное имя '{default}'. Требуется ручная проверка.")
+        elif len(detected) > 1:
+            warnings.append(f"Неоднозначный параметр оси ({axis}): {sorted(detected)}; "
+                            "требуется ручная проверка.")
+            if axis == "строки":
+                row_param_name = default
+            else:
+                col_param_name = default
 
     max_width = max(len(r) for r in cleaned_grid)
     padded_headers = [r + [""] * (max_width - len(r)) for r in header_rows]
@@ -161,7 +222,7 @@ def map_raw_grid_to_table_grid(
 
     if effective_cols < 1:
         raise ValueError("Пустой заголовок столбцов и отсутствие данных в столбцах.")
-    
+
     filled_upper_rows: List[List[str]] = []
     for r in range(len(padded_headers) - 1):
         row_copy = list(padded_headers[r])
@@ -169,7 +230,7 @@ def map_raw_grid_to_table_grid(
         for c in range(1, effective_cols + 1):
             if row_copy[c]:
                 last_val = row_copy[c]
-            elif last_val:
+            elif last_val and merged_ranges is None:
                 row_copy[c] = last_val
         filled_upper_rows.append(row_copy)
 
@@ -182,6 +243,12 @@ def map_raw_grid_to_table_grid(
     ]
 
     has_duplicate_leaves = len([x for x in raw_leaf_headers if x]) != len(set(x for x in raw_leaf_headers if x))
+    has_distinct_groups = any(len(set(row[1:effective_cols + 1])) > 1 for row in filled_upper_rows)
+    has_intervals = any(_is_interval_label(h) for h in raw_leaf_headers)
+    explicit_conditions = _explicit_conditions(raw_leaf_headers)
+    mixed_conditions = len(explicit_conditions) > 1
+    if mixed_conditions:
+        warnings.append("Разные условия столбцов сохранены в исходных метках; единое col_condition их не описывает.")
     cols_range: List[float | str] = []
     has_non_numeric_cols = False
 
@@ -199,12 +266,12 @@ def map_raw_grid_to_table_grid(
             cols_range.append(parsed)
             if isinstance(parsed, str):
                 has_non_numeric_cols = True
-        elif has_duplicate_leaves and upper and upper != leaf:
-            combined = f"{upper}: {leaf}"
+        elif (has_duplicate_leaves or has_distinct_groups) and upper and upper != leaf:
+            combined = f"{upper} | {leaf}"
             cols_range.append(combined)
             has_non_numeric_cols = True
         else:
-            parsed = _parse_axis_label(leaf, warnings, "столбцы")
+            parsed = leaf if has_intervals or mixed_conditions else _parse_axis_label(leaf, warnings, "столбцы")
             cols_range.append(parsed)
             if isinstance(parsed, str):
                 has_non_numeric_cols = True
@@ -214,6 +281,12 @@ def map_raw_grid_to_table_grid(
 
     rows_range: List[float | str] = []
     values_matrix: List[List[str]] = []
+    row_conditions = _explicit_conditions([left_header_text, *(row[0] for row in padded_data)])
+    mixed_row_conditions = len(row_conditions) > 1
+    if mixed_row_conditions:
+        warnings.append("Разные условия строк сохранены в исходных метках; единое row_condition их не описывает.")
+    elif row_conditions:
+        row_condition = next(iter(row_conditions))
 
     for r_idx, row in enumerate(padded_data, start=1):
         row_label = row[0]
@@ -228,7 +301,7 @@ def map_raw_grid_to_table_grid(
                 f"Строка данных {r_idx}: неизвестная метка оси; сохранена с меткой '{fallback_label}'."
             )
         else:
-            rows_range.append(_parse_axis_label(row_label, warnings, "строки"))
+            rows_range.append(row_label if mixed_row_conditions else _parse_axis_label(row_label, warnings, "строки"))
 
         values_matrix.append(row_cells)
 

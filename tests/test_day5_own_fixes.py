@@ -55,3 +55,18 @@ def test_header_ocr_keeps_resolution_and_separate_cells():
     words=recognize_cells([((0,0,400,200),[(0,0,200,200),(200,0,400,200)])],image,Engine())
     assert len(calls)==2 and all(h>100 for h,w in calls)
     assert len(words)==2 and words[0].bbox[0]<200<words[1].bbox[0]
+
+
+def test_header_diagnostics_reach_document(monkeypatch):
+    from norm_importer.header_parser import parse_card_header
+    header = parse_card_header([], fallback_stem="scan")
+    header.warnings = ["Unrecognized explicit formula"]
+    table = OCRTable((0, 30, 200, 200), [["D", "10"], ["5", "0.28"]], [], [])
+    page = OCRPage("scan.png", 2, [table])
+    monkeypatch.setattr("normdoc2json.ocr.iter_ocr_pages", lambda *a, **k: iter([page]))
+    monkeypatch.setattr("normdoc2json.ocr.table_header_lines", lambda *a: ["Card"])
+    monkeypatch.setattr("norm_importer.header_parser.parse_card_header", lambda *a, **k: header)
+    doc = ocr_document("scan.png")
+    assert doc.source_metadata.warnings == ["Page 2 table 1: Unrecognized explicit formula"]
+    assert doc.source_metadata.requires_manual_review
+    assert len(doc.cards) == 1

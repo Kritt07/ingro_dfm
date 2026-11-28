@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any, List, Optional, Tuple
 import csv
 import re
-import tempfile
 import typer
 
 from norm_importer.logger import setup_logger
@@ -235,7 +234,7 @@ def collect_input_files(input_path: Path) -> List[Path]:
             p for p in input_path.rglob("*")
             if p.is_file()
             and p.suffix.lower() in SUPPORTED_EXTENSIONS
-                        and not _is_ignored_debug_path(p, input_path)
+            and not _is_ignored_debug_path(p, input_path)
         )
     return []
 
@@ -300,6 +299,7 @@ def _parse_vector_pdf_file(file_path: Path, detected_format: SourceFormat) -> No
 
     try:
         from normdoc2json.pdf import extract_pdf
+        from normdoc2json.table_context import assign_table_context
         pdf_res = extract_pdf(file_path)
         warnings.extend(getattr(pdf_res, "warnings", []))
 
@@ -316,6 +316,10 @@ def _parse_vector_pdf_file(file_path: Path, detected_format: SourceFormat) -> No
                 getattr(page, "tables", []) or [],
                 key=lambda t: getattr(t, "bbox", (0, 0, 0, 0))[1],
             )
+            contexts, context_warnings = assign_table_context(tables, blocks)
+            warnings.extend(f'Page {page_num}: {warning}' for warning in context_warnings)
+            if context_warnings:
+                requires_manual_review = True
 
             for t_idx, tbl in enumerate(tables):
                 card_counter += 1
@@ -323,26 +327,8 @@ def _parse_vector_pdf_file(file_path: Path, detected_format: SourceFormat) -> No
                 if not grid:
                     continue
 
-                t_bbox = getattr(tbl, "bbox", None)
-                prev_bottom = getattr(tables[t_idx - 1], "bbox", (0, 0, 0, 0))[3] if t_idx > 0 else 0.0
-                next_top = getattr(tables[t_idx + 1], "bbox", (0, float("inf"), 0, 0))[1] if t_idx + 1 < len(tables) else float("inf")
-
-                header_lines: List[str] = []
-                note_lines: List[str] = []
-                if t_bbox is not None:
-                    t_top, t_bottom = t_bbox[1], t_bbox[3]
-                    for blk in blocks:
-                        b_bbox = getattr(blk, "bbox", None)
-                        b_text = (getattr(blk, "text", "") or "").strip()
-                        if not b_text or b_bbox is None:
-                            continue
-                        if prev_bottom <= b_bbox[1] and b_bbox[3] <= t_top:
-                            header_lines.append(b_text)
-                        elif t_bottom <= b_bbox[1] and b_bbox[3] <= next_top:
-                            note_lines.append(b_text)
-                else:
-                    header_lines = [(getattr(b, "text", "") or "").strip() for b in blocks if (getattr(b, "text", "") or "").strip()]
-                    note_lines = list(header_lines)
+                header_lines = contexts[t_idx].header_lines
+                note_lines = contexts[t_idx].note_lines
 
                 try:
                     parsed_header = parse_card_header(
@@ -362,7 +348,8 @@ def _parse_vector_pdf_file(file_path: Path, detected_format: SourceFormat) -> No
                     if note_warnings:
                         requires_manual_review = True
 
-                    table_grid, grid_warnings = map_raw_grid_to_table_grid(grid)
+                    table_grid, grid_warnings = map_raw_grid_to_table_grid(
+                        grid, merged_ranges=getattr(tbl, 'merged_ranges', None))
                     warnings.extend(grid_warnings)
                     if grid_warnings:
                         requires_manual_review = True
@@ -427,7 +414,6 @@ def _enrich_ocr_document_notes(doc: NormDocDocument) -> NormDocDocument:
         flags=re.IGNORECASE,
     )
     per_table_lines: dict[str, List[str]] = {}
-    fallback_lines: List[str] = []
 
     for w in doc.source_metadata.warnings:
         match = handoff_re.match(w.strip())
@@ -436,9 +422,8 @@ def _enrich_ocr_document_notes(doc: NormDocDocument) -> NormDocDocument:
             key = f"_P{page_num}_T{tbl_idx}"
             segments = [seg.strip() for seg in raw_blob.split(" | ") if seg.strip()]
             per_table_lines.setdefault(key, []).extend(segments)
-            fallback_lines.extend(segments)
 
-    if not fallback_lines:
+    if not per_table_lines:
         return doc
 
     for card in doc.cards:
@@ -446,8 +431,10 @@ def _enrich_ocr_document_notes(doc: NormDocDocument) -> NormDocDocument:
             continue
         matched_lines = next(
             (lines for suffix, lines in per_table_lines.items() if card.card_id.endswith(suffix)),
-            fallback_lines,
+            [],
         )
+        if not matched_lines:
+            continue
         rules, note_warnings = parse_notes_with_diagnostics(
             matched_lines,
             result_unit=card.result_unit,
@@ -486,7 +473,7 @@ def process_single_file(
     }:
         from normdoc2json import ocr_document
         debug_dir = (
-            Path(tempfile.gettempdir()) / "norm_importer_debug" / f"{file_path.name}.debug"
+            file_path.parent / f"{file_path.name}.debug"
             if debug_images
             else None
         )
@@ -495,6 +482,7 @@ def process_single_file(
 
     if detected_format == SourceFormat.PDF_VECTOR or ext == ".pdf":
         return _parse_vector_pdf_file(file_path, detected_format)
+
 
     return NormDocDocument(
         source_metadata=SourceMetadata(

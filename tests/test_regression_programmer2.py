@@ -205,10 +205,10 @@ def test_b18_multilevel_photo_headers_expected_fixture() -> None:
     assert g2.row_param_name == "width_b_mm"
     assert g2.rows_range == [3.0, 4.0, 6.0, 8.0, 10.0, 12.0, 16.0]
     assert g2.cols_range == [
-        "Открытый паз: L ≤ 20 мм",
-        "Открытый паз: 20 < L ≤ 40 мм",
-        "Закрытый паз: L ≤ 20 мм",
-        "Закрытый паз: 20 < L ≤ 40 мм",
+        "Открытый паз | L ≤ 20 мм",
+        "Открытый паз | 20 < L ≤ 40 мм",
+        "Закрытый паз | L ≤ 20 мм",
+        "Закрытый паз | 20 < L ≤ 40 мм",
     ]
 
 
@@ -279,6 +279,6 @@ def test_b17_collect_input_files_ignores_debug_dirs(tmp_path: Path) -> None:
     dbg_dir = tmp_path / "card.png.debug"
     dbg_dir.mkdir()
     (dbg_dir / "card.png.page-0001.png").write_bytes(b"fake_debug")
-    
+
     collected = collect_input_files(tmp_path)
     assert collected == [src_img]

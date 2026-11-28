@@ -34,7 +34,7 @@ def test_cli_batch_directory_conversion(tmp_path: Path):
     """Проверка пакетного обхода директории с фильтрацией поддерживаемых форматов."""
     in_dir = tmp_path / "batch_in"
     in_dir.mkdir()
-    (in_dir / "doc1.pdf").write_bytes(b"%PDF-1.4")
+    (in_dir / "doc1.pdf").write_bytes((Path(__file__).parent / "fixtures/pdf_tables/ruled.pdf").read_bytes())
     (in_dir / "doc2.xlsx").write_bytes(b"PK")
     (in_dir / "ignored.exe").write_bytes(b"MZ")
 
@@ -95,7 +95,7 @@ def test_cli_batch_directory_no_overwrite_same_stem(tmp_path: Path):
     """Проверка, что файлы с одинаковым именем и разным расширением не перезаписывают друг друга."""
     in_dir = tmp_path / "batch_in"
     in_dir.mkdir()
-    (in_dir / "karta.pdf").write_bytes(b"%PDF-1.4")
+    (in_dir / "karta.pdf").write_bytes((Path(__file__).parent / "fixtures/pdf_tables/ruled.pdf").read_bytes())
     (in_dir / "karta.xlsx").write_bytes(b"PK")
     (in_dir / "ignored.exe").write_bytes(b"MZ")
 

@@ -7,3 +7,4 @@ b18_acceptance.txt
 photos_b18*.json
 photo_json/
 router_json/
+merge_pytest.txt

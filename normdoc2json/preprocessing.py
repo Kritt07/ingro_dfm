@@ -17,6 +17,7 @@ class PreparedPage:
     rotation_degrees: float = 0.0
     scale: tuple[float, float] = (1.0, 1.0)
     warnings: list[str] = field(default_factory=list)
+    grayscale: np.ndarray | None = None
 
     @property
     def requires_manual_review(self) -> bool:
@@ -99,6 +100,9 @@ def preprocess_page(page: ImagePage, *, target_dpi: int = 300,
     # Мягкая фильтрация сохраняет границы и мелкие знаки; морфологическое
     # раскрытие не применяется, поскольку оно может уничтожать запятые.
     clean = cv2.bilateralFilter(gray, 5, 20, 20)
+    # Preserve the same geometry for local text thresholding. The adaptive
+    # grid image can fragment thick glyphs after DPI upscaling of phone photos.
+    result.grayscale = clean
     block = min(51, min(clean.shape) // 2 * 2 - 1)
     result.image = cv2.adaptiveThreshold(clean, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                         cv2.THRESH_BINARY, max(3, block), 15)
